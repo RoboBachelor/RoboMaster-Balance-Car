@@ -6,8 +6,10 @@
 #include "bsp_uart.h"
 #include "bsp_imu.h"
 #include "bsp_can.h"
+#include "bsp_trigger.h"
 #include "pid.h"
 #include "cmsis_os.h"
+#include "filter.h"
 
 typedef enum
 {
@@ -19,14 +21,18 @@ typedef enum
 typedef struct
 {
     const motor_measure_t *motor_measure;
-    PidTypeDef angle_pid;
-    PidTypeDef gyro_pid;
     gimbal_motor_mode_e gimbal_motor_mode;
     gimbal_motor_mode_e last_gimbal_motor_mode;
+	
+    PidTypeDef angle_pid;
+    PidTypeDef gyro_pid;
+	
+		filter_t angle_filter;
+		filter_t current_filter;
+	
     uint16_t offset_ecd;
     float max_ecd_angle; //deg
     float min_ecd_angle; //deg
-
     float ecd_angle;     //deg
     float imu_angle;     //deg
     float angle_set; 		//deg

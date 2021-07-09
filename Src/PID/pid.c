@@ -83,7 +83,7 @@ float PID_Calc(PidTypeDef *pid, float ref, float set)
     return pid->out;
 }
 
-static float gimbal_PID_calc(PidTypeDef *pid, float get, float set, float error_delta)
+float gimbal_PID_calc(PidTypeDef *pid, float get, float set, float error_delta)
 {
     float err;
     if (pid == NULL)

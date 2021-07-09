@@ -46,10 +46,10 @@ void INS_Task(void const * argument){
 		imu.gimbal_yaw_gyro = cos(imu.eulerAngles.angle.pitch / 57.29577958f) * imu.gyro.axis.z + sin(imu.eulerAngles.angle.pitch / 57.29577958f) * imu.gyro.axis.y;
 		
 		/* Send eular angles in Serial-Studio format */
-		sprintf(buf, "/*%.5f,%.5f,%.5f*/", imu.eulerAngles.angle.yaw, imu.eulerAngles.angle.roll, imu.eulerAngles.angle.pitch);
-		if(mpu6500_cnt % 20 == 0){
-			CDC_Transmit_FS((uint8_t*)buf, strlen(buf));
-		}
+		//sprintf(buf, "/*%.5f,%.5f,%.5f*/", imu.eulerAngles.angle.yaw, imu.eulerAngles.angle.roll, imu.eulerAngles.angle.pitch);
+		//if(mpu6500_cnt % 20 == 0){
+		//	CDC_Transmit_FS((uint8_t*)buf, strlen(buf));
+		//}
 		
 	}
 	

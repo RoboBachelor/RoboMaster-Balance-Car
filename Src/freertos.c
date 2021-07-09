@@ -200,7 +200,6 @@ void StartDefaultTask(void const * argument)
 //        vTaskDelay(1000);
 //    }
 	
-	
   /* Infinite loop */
   for(;;)
   {
@@ -209,8 +208,8 @@ void StartDefaultTask(void const * argument)
 		//int_en = mpu_read_byte(0x38);
 
 		vTaskGetRunTimeStats(buf);
-		//sprintf(buf + strlen(buf), "xTaskGetTickCount()=%d\n", xTaskGetTickCount());
-		//CDC_Transmit_FS((uint8_t*) buf, strlen(buf));
+		sprintf(buf + strlen(buf), "xTaskGetTickCount()=%d\n", xTaskGetTickCount());
+		CDC_Transmit_FS((uint8_t*) buf, strlen(buf));
   }
   /* USER CODE END StartDefaultTask */
 }

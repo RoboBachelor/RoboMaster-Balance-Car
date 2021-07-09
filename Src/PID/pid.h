@@ -48,4 +48,5 @@ typedef struct
 extern void PID_Init(PidTypeDef *pid, uint8_t mode, const float PID[3], float max_out, float max_iout);
 extern float PID_Calc(PidTypeDef *pid, float ref, float set);
 extern void PID_clear(PidTypeDef *pid);
+float gimbal_PID_calc(PidTypeDef *pid, float get, float set, float error_delta);
 #endif

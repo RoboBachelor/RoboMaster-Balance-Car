@@ -33,6 +33,7 @@
 #include "bsp_imu.h"
 #include "bsp_uart.h"
 #include "bsp_can.h"
+#include "bsp_trigger.h"
 #include "FusionAhrs.h"
 #include "usbd_cdc_if.h"
 /* USER CODE END Includes */
@@ -59,6 +60,7 @@ extern RC_ctrl_t rc;
 
 extern UART_HandleTypeDef huart6;
 char buf[300];
+//extern TIM_HandleTypeDef htim5;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -75,12 +77,9 @@ void MX_FREERTOS_Init(void);
 void LED_Task(void const * argument){
 	
 	while(1){
-		uint16_t pulse = rc.rc.ch[2] / 660.f * 500.f + 1500;
-		
-		__HAL_TIM_SetCompare(&htim5, TIM_CHANNEL_4, pulse);
 		
 		HAL_GPIO_TogglePin(GPIOF, LED_GREEN_Pin);
-		osDelay(250);
+		osDelay(500);
 	}
 	
 }
@@ -128,7 +127,7 @@ int main(void)
 	mpu_device_init();
 	dbus_uart_init();
 	can_filter_init();
-
+	trigger_pwm_start();
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in freertos.c) */
