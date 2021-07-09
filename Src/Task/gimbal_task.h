@@ -10,6 +10,7 @@
 #include "pid.h"
 #include "cmsis_os.h"
 #include "filter.h"
+#include "stdio.h"
 
 typedef enum
 {
@@ -43,5 +44,7 @@ typedef struct
     int16_t given_current;
 
 } gimbal_motor_t;
+
+void usb_cdc_unpackage(uint8_t* Buf, uint32_t *Len);
 
 #endif

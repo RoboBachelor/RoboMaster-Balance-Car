@@ -95,3 +95,14 @@ void Gimbal_Task(void const * argument){
     vTaskDelayUntil(&xLastWakeTime, 1);
 	}
 }
+
+
+int16_t d1, d2, d3;
+
+void usb_cdc_unpackage(uint8_t* Buf, uint32_t *Len){
+	char command[10];
+	sscanf((char*)Buf, "%s", command);
+	if(strcmp(command, "DIST") == 0){
+		sscanf((char*)Buf + 4, "%hd%hd%hd", &d1, &d2, &d3);
+	}
+}

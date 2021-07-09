@@ -55,26 +55,47 @@ extern char buf[300]; // In main.c
 extern SPI_HandleTypeDef hspi5;
 extern uint8_t               ist_buff[6];                           /* buffer to save IST8310 raw data */
 /* USER CODE END Variables */
-osThreadId defaultTaskHandle;
-osThreadId LED_Blink_TaskHandle;
-osThreadId INS_Update_TaskHandle;
-osThreadId Gimbal_ControlHandle;
+/* Definitions for defaultTask */
+osThreadId_t defaultTaskHandle;
+const osThreadAttr_t defaultTask_attributes = {
+  .name = "defaultTask",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128 * 4
+};
+/* Definitions for LED_Blink_Task */
+osThreadId_t LED_Blink_TaskHandle;
+const osThreadAttr_t LED_Blink_Task_attributes = {
+  .name = "LED_Blink_Task",
+  .priority = (osPriority_t) osPriorityBelowNormal,
+  .stack_size = 128 * 4
+};
+/* Definitions for INS_Update_Task */
+osThreadId_t INS_Update_TaskHandle;
+const osThreadAttr_t INS_Update_Task_attributes = {
+  .name = "INS_Update_Task",
+  .priority = (osPriority_t) osPriorityRealtime,
+  .stack_size = 1024 * 4
+};
+/* Definitions for Gimbal_Control */
+osThreadId_t Gimbal_ControlHandle;
+const osThreadAttr_t Gimbal_Control_attributes = {
+  .name = "Gimbal_Control",
+  .priority = (osPriority_t) osPriorityHigh,
+  .stack_size = 512 * 4
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
 
 /* USER CODE END FunctionPrototypes */
 
-void StartDefaultTask(void const * argument);
-extern void LED_Task(void const * argument);
-extern void INS_Task(void const * argument);
-extern void Gimbal_Task(void const * argument);
+void StartDefaultTask(void *argument);
+extern void LED_Task(void *argument);
+extern void INS_Task(void *argument);
+extern void Gimbal_Task(void *argument);
 
 extern void MX_USB_DEVICE_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
-
-/* GetIdleTaskMemory prototype (linked to static allocation support) */
-void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize );
 
 /* Hook prototypes */
 void configureTimerForRunTimeStats(void);
@@ -92,19 +113,6 @@ __weak unsigned long getRunTimeCounterValue(void)
 return xTaskGetTickCount();//0;
 }
 /* USER CODE END 1 */
-
-/* USER CODE BEGIN GET_IDLE_TASK_MEMORY */
-static StaticTask_t xIdleTaskTCBBuffer;
-static StackType_t xIdleStack[configMINIMAL_STACK_SIZE];
-
-void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize )
-{
-  *ppxIdleTaskTCBBuffer = &xIdleTaskTCBBuffer;
-  *ppxIdleTaskStackBuffer = &xIdleStack[0];
-  *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
-  /* place for user code */
-}
-/* USER CODE END GET_IDLE_TASK_MEMORY */
 
 /**
   * @brief  FreeRTOS initialization
@@ -133,21 +141,17 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
-  defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+  /* creation of defaultTask */
+  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
-  /* definition and creation of LED_Blink_Task */
-  osThreadDef(LED_Blink_Task, LED_Task, osPriorityBelowNormal, 0, 128);
-  LED_Blink_TaskHandle = osThreadCreate(osThread(LED_Blink_Task), NULL);
+  /* creation of LED_Blink_Task */
+  LED_Blink_TaskHandle = osThreadNew(LED_Task, NULL, &LED_Blink_Task_attributes);
 
-  /* definition and creation of INS_Update_Task */
-  osThreadDef(INS_Update_Task, INS_Task, osPriorityRealtime, 0, 1024);
-  INS_Update_TaskHandle = osThreadCreate(osThread(INS_Update_Task), NULL);
+  /* creation of INS_Update_Task */
+  INS_Update_TaskHandle = osThreadNew(INS_Task, NULL, &INS_Update_Task_attributes);
 
-  /* definition and creation of Gimbal_Control */
-  osThreadDef(Gimbal_Control, Gimbal_Task, osPriorityHigh, 0, 512);
-  Gimbal_ControlHandle = osThreadCreate(osThread(Gimbal_Control), NULL);
+  /* creation of Gimbal_Control */
+  Gimbal_ControlHandle = osThreadNew(Gimbal_Task, NULL, &Gimbal_Control_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -162,7 +166,7 @@ void MX_FREERTOS_Init(void) {
   * @retval None
   */
 /* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void const * argument)
+void StartDefaultTask(void *argument)
 {
   /* init code for USB_DEVICE */
   MX_USB_DEVICE_Init();
