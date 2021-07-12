@@ -14,6 +14,10 @@
 
 #include "usart.h"
 
+#define REFREE_MAX_LEN     (50)
+#define REFREE_BUFLEN      (18)
+#define REFREE_HUART       huart6 /* for dji remote controler reciever */
+
 #define UART_RX_DMA_SIZE (1024)
 #define DBUS_MAX_LEN     (50)
 #define DBUS_BUFLEN      (18)
@@ -69,6 +73,7 @@ typedef struct{
 
 void uart_receive_handler(UART_HandleTypeDef *huart);
 void dbus_uart_init(void);
+void refree_uart_init(void);
 void USART_SendData(USART_TypeDef* USARTx, uint16_t Data);
 #endif
 

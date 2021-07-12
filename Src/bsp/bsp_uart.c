@@ -13,9 +13,10 @@
 #include "bsp_uart.h"
 #include "usart.h"
 #include "main.h"
-uint8_t   dbus_buf[DBUS_BUFLEN];
-RC_ctrl_t rc;
 
+uint8_t dbus_buf[DBUS_BUFLEN];
+uint8_t refree_buf[REFREE_MAX_LEN];
+RC_ctrl_t rc;
 
 
 /**
@@ -117,6 +118,17 @@ void rc_callback_handler(RC_ctrl_t *rc_ctrl, uint8_t *sbus_buf)
 }
 
 /**
+  * @brief       handle received rc data
+  * @param[out]  rc:   structure to save handled rc data
+  * @param[in]   buff: the buff which saved raw rc data
+  * @retval 
+  */
+void refree_buffer_handler(uint8_t *buf, uint8_t len){
+	
+}
+
+
+/**
   * @brief      clear idle it flag after uart receive a frame data
   * @param[in]  huart: uart IRQHandler id
   * @retval  
@@ -137,6 +149,20 @@ static void uart_rx_idle_callback(UART_HandleTypeDef* huart)
 		{
 			rc_callback_handler(&rc, dbus_buf);	
 		}
+		
+		/* restart dma transmission */
+		__HAL_DMA_SET_COUNTER(huart->hdmarx, DBUS_MAX_LEN);
+		__HAL_DMA_ENABLE(huart->hdmarx);
+	}
+	
+	/* handle received data in idle interrupt */
+	else if (huart == &huart6)
+	{
+		/* clear DMA transfer complete flag */
+		__HAL_DMA_DISABLE(huart->hdmarx);
+
+		/* handle refree data refree_buf from DMA */
+		refree_buffer_handler(refree_buf, DBUS_MAX_LEN - dma_current_data_counter(huart->hdmarx->Instance));	
 		
 		/* restart dma transmission */
 		__HAL_DMA_SET_COUNTER(huart->hdmarx, DBUS_MAX_LEN);
@@ -172,5 +198,11 @@ void dbus_uart_init(void)
 	uart_receive_dma_no_it(&DBUS_HUART, dbus_buf, DBUS_MAX_LEN);
 }
 
+void refree_uart_init(void){
+	/* open uart idle it */
+	__HAL_UART_CLEAR_IDLEFLAG(&REFREE_HUART);
+	__HAL_UART_ENABLE_IT(&REFREE_HUART, UART_IT_IDLE);
 
+	uart_receive_dma_no_it(&REFREE_HUART, refree_buf, REFREE_MAX_LEN);	
+}
 

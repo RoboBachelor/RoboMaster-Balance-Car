@@ -129,6 +129,7 @@ int main(void)
 	led_off();
 	mpu_device_init();
 	dbus_uart_init();
+	refree_uart_init();
 	can_filter_init();
 	trigger_pwm_start();
 	Lcd_Init();
