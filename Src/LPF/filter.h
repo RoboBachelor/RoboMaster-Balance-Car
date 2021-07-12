@@ -7,7 +7,6 @@
 typedef struct{
 	float freq;
 	float a;
-	float last;
 	float out;
 } filter_t;
 

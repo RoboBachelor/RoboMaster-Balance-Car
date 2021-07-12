@@ -61,8 +61,18 @@ void Error_Handler(void);
 #define MPU6500_INT_Pin GPIO_PIN_8
 #define MPU6500_INT_GPIO_Port GPIOB
 #define MPU6500_INT_EXTI_IRQn EXTI9_5_IRQn
+#define LCD_SCLK_Pin GPIO_PIN_3
+#define LCD_SCLK_GPIO_Port GPIOB
+#define LCD_DC_Pin GPIO_PIN_9
+#define LCD_DC_GPIO_Port GPIOB
+#define LCD_BLK_Pin GPIO_PIN_6
+#define LCD_BLK_GPIO_Port GPIOA
 #define LED_RED_Pin GPIO_PIN_11
 #define LED_RED_GPIO_Port GPIOE
+#define LCD_SDIN_Pin GPIO_PIN_7
+#define LCD_SDIN_GPIO_Port GPIOA
+#define LCD_RST_Pin GPIO_PIN_0
+#define LCD_RST_GPIO_Port GPIOB
 #define LED_GREEN_Pin GPIO_PIN_14
 #define LED_GREEN_GPIO_Port GPIOF
 /* USER CODE BEGIN Private defines */

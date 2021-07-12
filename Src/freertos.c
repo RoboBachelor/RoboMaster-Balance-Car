@@ -83,6 +83,13 @@ const osThreadAttr_t Gimbal_Control_attributes = {
   .priority = (osPriority_t) osPriorityHigh,
   .stack_size = 512 * 4
 };
+/* Definitions for LCD_Refresh */
+osThreadId_t LCD_RefreshHandle;
+const osThreadAttr_t LCD_Refresh_attributes = {
+  .name = "LCD_Refresh",
+  .priority = (osPriority_t) osPriorityLow,
+  .stack_size = 512 * 4
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -93,6 +100,7 @@ void StartDefaultTask(void *argument);
 extern void LED_Task(void *argument);
 extern void INS_Task(void *argument);
 extern void Gimbal_Task(void *argument);
+extern void LCD_Task(void *argument);
 
 extern void MX_USB_DEVICE_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -153,9 +161,16 @@ void MX_FREERTOS_Init(void) {
   /* creation of Gimbal_Control */
   Gimbal_ControlHandle = osThreadNew(Gimbal_Task, NULL, &Gimbal_Control_attributes);
 
+  /* creation of LCD_Refresh */
+  LCD_RefreshHandle = osThreadNew(LCD_Task, NULL, &LCD_Refresh_attributes);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
+
+  /* USER CODE BEGIN RTOS_EVENTS */
+  /* add events, ... */
+  /* USER CODE END RTOS_EVENTS */
 
 }
 

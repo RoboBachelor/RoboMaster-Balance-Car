@@ -493,6 +493,11 @@
               <FileType>1</FileType>
               <FilePath>..\Src\bsp\bsp_trigger.c</FilePath>
             </File>
+            <File>
+              <FileName>bsp_lcd.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\bsp\bsp_lcd.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

@@ -47,7 +47,7 @@ typedef struct
     int16_t given_current;
     uint8_t temperate;
     int16_t last_ecd;
-		int16_t ecd_8192n;
+		int32_t ecd_8192n;
 		int32_t ecd_cumulation;
 } motor_measure_t;
 

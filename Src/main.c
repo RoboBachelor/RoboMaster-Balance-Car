@@ -34,6 +34,7 @@
 #include "bsp_uart.h"
 #include "bsp_can.h"
 #include "bsp_trigger.h"
+#include "bsp_lcd.h"
 #include "FusionAhrs.h"
 #include "usbd_cdc_if.h"
 /* USER CODE END Includes */
@@ -73,6 +74,8 @@ void MX_FREERTOS_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+char lcd_str[100];
 
 void LED_Task(void const * argument){
 	
@@ -128,6 +131,11 @@ int main(void)
 	dbus_uart_init();
 	can_filter_init();
 	trigger_pwm_start();
+	Lcd_Init();
+	
+	sprintf(lcd_str, "Init...");//将LCD ID打印到lcd_id数组。	
+	LCD_ShowString(1, 1, lcd_str);
+		
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -197,7 +205,7 @@ void SystemClock_Config(void)
 
 /* USER CODE END 4 */
 
-/**
+ /**
   * @brief  Period elapsed callback in non blocking mode
   * @note   This function is called  when TIM7 interrupt took place, inside
   * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
