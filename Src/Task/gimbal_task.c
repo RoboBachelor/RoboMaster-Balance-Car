@@ -23,12 +23,12 @@ void Gimbal_Task(void const* argument) {
     TickType_t xLastWakeTime = xTaskGetTickCount();
 
     // Init Yaw and pitch motors PID parameters
-    float yaw_gyro_pid[3] = {300.0f, 0.0007f, 50.0f};
+    float yaw_gyro_pid[3] = {400.0f, 0, 100000.0f};
     float yaw_angle_pid[3] = {25, 0.2, 2.5};
 
-    float yaw_ecd_angle_pid[3] = {12, 0.4, 2};
+    float yaw_ecd_angle_pid[3] = {12, 0, 0.35};
     float pitch_gyro_pid[3] = {50.f, 0.2f, 100.f};
-    float pitch_angle_pid[3] = {50, 0.5, 2};
+    float pitch_angle_pid[3] = {50, 0.4, 0.12};
 
     // Set motor measure pointers point to motor_measure[] in bsp_can.c
     yaw_motor.motor_measure = motor_measure + 4;
@@ -46,12 +46,15 @@ void Gimbal_Task(void const* argument) {
     filter_init(&yaw_motor.current_filter, 60.f);
     filter_init(&pitch_motor.current_filter, 45.f);
 
-    filter_init(&pitch_motor.gyro_filter, 500.f);
-
     float Trigger_speed_pid[3] = {TRIGGER_ANGLE_PID_KP, TRIGGER_ANGLE_PID_KI, TRIGGER_ANGLE_PID_KD};
     shoot_control.shoot_motor_measure = motor_measure + 6;
     PID_Init(&shoot_control.trigger_motor_pid, PID_POSITION, Trigger_speed_pid, TRIGGER_READY_PID_MAX_OUT, TRIGGER_READY_PID_MAX_IOUT);
-
+	yaw_motor.gyro_pid.proportion_output_filter_coefficient = 0.95;
+	yaw_motor.gyro_pid.derivative_output_filter_coefficient = 0.99995;
+		
+		
+		pitch_motor.gyro_pid.proportion_output_filter_coefficient = 0.8;
+		pitch_motor.gyro_pid.derivative_output_filter_coefficient = 0.8;
     vTaskDelay(1000);
 
     while (1) {
@@ -112,14 +115,11 @@ void Gimbal_Task(void const* argument) {
             &pitch_motor.angle_pid, imu.eulerAngles.angle.pitch, pitch_motor.angle_set,
             -pitch_motor.motor_gyro);
 
-        /* Gyro filter calc */
-        filter_calc(&pitch_motor.gyro_filter, pitch_motor.motor_gyro);
-
         /* Gyro loop PID */
         yaw_motor.current_set = PID_Calc(&yaw_motor.gyro_pid, yaw_motor.motor_gyro,
                                          yaw_motor.motor_gyro_set);
         pitch_motor.current_set = PID_Calc(
-            &pitch_motor.gyro_pid, pitch_motor.gyro_filter.out, pitch_motor.motor_gyro_set);
+            &pitch_motor.gyro_pid, pitch_motor.motor_gyro, pitch_motor.motor_gyro_set);
 
         /* Trigger motor PID */
         PID_Calc(&shoot_control.trigger_motor_pid, shoot_control.speed,
