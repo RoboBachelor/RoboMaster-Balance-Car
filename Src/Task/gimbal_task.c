@@ -26,10 +26,11 @@ void Gimbal_Task(void const * argument){
 	
 	//Init Yaw and pitch motors PID parameters
 	float yaw_gyro_pid[3] = {300.0f, 0.0007f, 50.0f};
-	float yaw_angle_pid[3] = {25, 0.001, 0};
+	float yaw_angle_pid[3] = {25, 0.2, 2.5};
 	
+	float yaw_ecd_angle_pid[3] = {12, 0.4, 2};
 	float pitch_gyro_pid[3] = {50.f, 0.2f, 100.f};
-	float pitch_angle_pid[3] = {40, 0.0025, 0};
+	float pitch_angle_pid[3] = {50, 0.5, 2};
 	
 	//Set motor measure pointers point to motor_measure[] in bsp_can.c
 	yaw_motor.motor_measure = motor_measure + 4;
@@ -40,8 +41,8 @@ void Gimbal_Task(void const * argument){
 	PID_Init(&pitch_motor.gyro_pid, PID_POSITION, pitch_gyro_pid, 30000, 15000);
 	
 	//Init angle (ecd or imu) PIDs
-	PID_Init(&yaw_motor.angle_pid, PID_POSITION, yaw_angle_pid, 800, 400);
-	PID_Init(&pitch_motor.angle_pid, PID_POSITION, pitch_angle_pid, 800, 80);
+	PID_Init(&yaw_motor.angle_pid, PID_POSITION, yaw_ecd_angle_pid, 800, 80);
+	PID_Init(&pitch_motor.angle_pid, PID_POSITION, pitch_angle_pid, 200, 40);
 	
 	//Init current out filter
 	filter_init(&yaw_motor.current_filter, 60.f);
@@ -53,12 +54,16 @@ void Gimbal_Task(void const * argument){
 	shoot_control.shoot_motor_measure = motor_measure + 6;
 	PID_Init(&shoot_control.trigger_motor_pid, PID_POSITION, Trigger_speed_pid, TRIGGER_READY_PID_MAX_OUT, TRIGGER_READY_PID_MAX_IOUT);
 	
+	vTaskDelay(1000);
+	
 	while(1){
 		
 		/* --- [1] Feedback from sensors --- */
 		
 		yaw_motor.motor_gyro		= imu.gimbal_yaw_gyro;
 		pitch_motor.motor_gyro	= imu.gyro.axis.x;
+		
+		yaw_motor.ecd_angle = (- yaw_motor.motor_measure->ecd + 4096) / 4096.f * 180.f;
 		
 		shoot_control.speed = shoot_control.shoot_motor_measure->speed_rpm * MOTOR_RPM_TO_SPEED;
 		
@@ -68,12 +73,17 @@ void Gimbal_Task(void const * argument){
 		yaw_motor.motor_gyro_set = - rc.rc.ch[0] / 3.f;
 		pitch_motor.motor_gyro_set = rc.rc.ch[1] / 3.f;
 		*/
-		/* Set angle from RC */
+		/* Set angle increasement from RC 
 		yaw_motor.angle_set -= rc.rc.ch[0] / 3300.f;
 		pitch_motor.angle_set += rc.rc.ch[1] / 3300.f;
 		
 		if(pitch_motor.angle_set > 12.f) pitch_motor.angle_set = 12.f;
 		if(pitch_motor.angle_set < -44.f) pitch_motor.angle_set = -44.f;
+		*/
+		
+		/* Set angle from RC */
+		yaw_motor.angle_set = -rc.rc.ch[0] / 10.f;
+		pitch_motor.angle_set = rc.rc.ch[1] / 10.f - 10.f;
 		
 		/* Set trigger speed from RC */
 		if(switch_is_down(rc.rc.s[0])){
@@ -99,7 +109,7 @@ void Gimbal_Task(void const * argument){
 		}
 		
 		/* Angle loop PID calc: 250Hz */
-			yaw_motor.motor_gyro_set = gimbal_PID_calc(&yaw_motor.angle_pid, imu.eulerAngles.angle.yaw, yaw_motor.angle_set, -yaw_motor.motor_gyro);
+			yaw_motor.motor_gyro_set = gimbal_PID_calc(&yaw_motor.angle_pid, yaw_motor.ecd_angle, yaw_motor.angle_set, -yaw_motor.motor_gyro);
 			pitch_motor.motor_gyro_set = gimbal_PID_calc(&pitch_motor.angle_pid, imu.eulerAngles.angle.pitch, pitch_motor.angle_set, -pitch_motor.motor_gyro);
 				
 
