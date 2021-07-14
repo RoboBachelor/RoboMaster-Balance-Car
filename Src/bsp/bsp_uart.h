@@ -14,7 +14,7 @@
 
 #include "usart.h"
 
-#define REFREE_MAX_LEN     (50)
+#define REFREE_MAX_LEN     (200)
 #define REFREE_BUFLEN      (18)
 #define REFREE_HUART       huart6 /* for dji remote controler reciever */
 

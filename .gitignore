@@ -1,6 +1,7 @@
 Listing
 .idea/
 cmake-build-debug/
+MDK-ARM/.vscode/
 Output  
 *.bak
 *.ddk

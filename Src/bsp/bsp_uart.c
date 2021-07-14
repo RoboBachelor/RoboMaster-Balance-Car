@@ -117,6 +117,9 @@ void rc_callback_handler(RC_ctrl_t *rc_ctrl, uint8_t *sbus_buf)
     rc_ctrl->rc.ch[4] -= RC_CH_VALUE_OFFSET;
 }
 
+int32_t hit_cnt;
+int8_t refree_buf_len;
+
 /**
   * @brief       handle received rc data
   * @param[out]  rc:   structure to save handled rc data
@@ -124,7 +127,10 @@ void rc_callback_handler(RC_ctrl_t *rc_ctrl, uint8_t *sbus_buf)
   * @retval 
   */
 void refree_buffer_handler(uint8_t *buf, uint8_t len){
-	
+	if(buf[5] == 0x02 && buf[6] == 0x06){
+		hit_cnt++;
+	}
+	refree_buf_len = len;
 }
 
 
@@ -162,10 +168,10 @@ static void uart_rx_idle_callback(UART_HandleTypeDef* huart)
 		__HAL_DMA_DISABLE(huart->hdmarx);
 
 		/* handle refree data refree_buf from DMA */
-		refree_buffer_handler(refree_buf, DBUS_MAX_LEN - dma_current_data_counter(huart->hdmarx->Instance));	
+		refree_buffer_handler(refree_buf, REFREE_MAX_LEN - dma_current_data_counter(huart->hdmarx->Instance));	
 		
 		/* restart dma transmission */
-		__HAL_DMA_SET_COUNTER(huart->hdmarx, DBUS_MAX_LEN);
+		__HAL_DMA_SET_COUNTER(huart->hdmarx, REFREE_MAX_LEN);
 		__HAL_DMA_ENABLE(huart->hdmarx);
 	}
 }

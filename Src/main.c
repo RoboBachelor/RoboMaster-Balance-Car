@@ -132,10 +132,10 @@ int main(void)
 	refree_uart_init();
 	can_filter_init();
 	trigger_pwm_start();
-	Lcd_Init();
+	//Lcd_Init();
 	
-	sprintf(lcd_str, "Init...");//将LCD ID打印到lcd_id数组。	
-	LCD_ShowString(1, 1, lcd_str);
+	//sprintf(lcd_str, "Init...");//将LCD ID打印到lcd_id数组。	
+	//LCD_ShowString(1, 1, lcd_str);
 		
   /* USER CODE END 2 */
 
