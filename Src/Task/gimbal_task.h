@@ -95,16 +95,20 @@ typedef struct
     uint16_t heat;
 } shoot_control_t;
 
+
+#define PITCH_ANGLE_MAX 12.f
+#define PITCH_ANGLE_MIN -44.f
+
 //²¦µ¯ÂÖµç»úPID
 #define TRIGGER_ANGLE_PID_KP        800.0f
-#define TRIGGER_ANGLE_PID_KI        0.5f
+#define TRIGGER_ANGLE_PID_KI        5.f
 #define TRIGGER_ANGLE_PID_KD        0.0f
 
 #define TRIGGER_BULLET_PID_MAX_OUT  10000.0f
 #define TRIGGER_BULLET_PID_MAX_IOUT 9000.0f
 
-#define TRIGGER_READY_PID_MAX_OUT   10000.0f
-#define TRIGGER_READY_PID_MAX_IOUT  7000.0f
+#define TRIGGER_READY_PID_MAX_OUT   12000.0f
+#define TRIGGER_READY_PID_MAX_IOUT  4000.0f
 
 #define MOTOR_RPM_TO_SPEED          0.00290888208665721596153948461415f
 

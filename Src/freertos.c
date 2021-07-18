@@ -162,7 +162,7 @@ void MX_FREERTOS_Init(void) {
   Gimbal_ControlHandle = osThreadNew(Gimbal_Task, NULL, &Gimbal_Control_attributes);
 
   /* creation of LCD_Refresh */
-  // LCD_RefreshHandle = osThreadNew(LCD_Task, NULL, &LCD_Refresh_attributes);
+  LCD_RefreshHandle = osThreadNew(LCD_Task, NULL, &LCD_Refresh_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
