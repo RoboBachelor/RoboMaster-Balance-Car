@@ -13,6 +13,7 @@
 #include "bsp_uart.h"
 #include "usart.h"
 #include "main.h"
+#include "crc8_crc16.h"
 
 uint8_t dbus_buf[DBUS_BUFLEN];
 uint8_t refree_buf[REFREE_MAX_LEN];
@@ -117,8 +118,31 @@ void rc_callback_handler(RC_ctrl_t *rc_ctrl, uint8_t *sbus_buf)
     rc_ctrl->rc.ch[4] -= RC_CH_VALUE_OFFSET;
 }
 
-int32_t hit_cnt;
-int8_t refree_buf_len;
+// 0x00__
+ext_game_status_t game_status;
+ext_game_result_t game_result;
+ext_game_robot_HP_t game_robot_HP;
+
+// 0x01__
+ext_event_data_t field_event;
+ext_supply_projectile_action_t supply_projectile_action;
+ext_referee_warning_t referee_warning;
+ext_dart_remaining_time_t dart_remaining_time;
+
+// 0x02__
+ext_game_robot_status_t robot_state;
+ext_power_heat_data_t power_heat_data;
+ext_game_robot_pos_t game_robot_pos;
+ext_buff_t robot_buff;
+aerial_robot_energy_t robot_energy;
+ext_robot_hurt_t robot_hurt;
+ext_shoot_data_t shoot_data;
+ext_bullet_remaining_t bullet_remaining;
+
+// 0x03__
+ext_student_interactive_data_t student_interactive_data;
+
+uint16_t hit_count = 0;
 
 /**
   * @brief       handle received rc data
@@ -126,11 +150,132 @@ int8_t refree_buf_len;
   * @param[in]   buff: the buff which saved raw rc data
   * @retval 
   */
-void refree_buffer_handler(uint8_t *buf, uint8_t len){
-	if(buf[5] == 0x02 && buf[6] == 0x06){
-		hit_cnt++;
+void refree_buffer_handler(uint8_t *buf, uint16_t len){
+	
+	for(uint8_t i = 0; i <= len - 5; ++i){
+		
+		// Find the header
+		if(buf[i] == 0xA5){
+			// Not correct header
+			if(!verify_CRC8_check_sum(buf + i, 5)){
+				continue;
+			}
+			
+			// Get length
+			uint16_t data_length = (uint16_t)buf[i + 2] << 8 | buf[i + 1];
+			
+			// Ensure all data is in buffer
+			if(i + data_length > len){
+				continue;
+			}
+			
+			// Verify CRC16 of whole package
+			if(!verify_CRC16_check_sum(buf + i, 9 + data_length)){
+				continue;
+			}
+			
+			// Get CMD_ID
+			uint16_t cmd_id;
+			memcpy((void*)&cmd_id, buf + i + 5, sizeof(uint16_t));
+			
+			switch(cmd_id){
+				
+				// 0x00__
+        case GAME_STATE_CMD_ID:
+        {
+            memcpy(&game_status, buf + i + 7, sizeof(game_status));
+        }
+        break;
+        case GAME_RESULT_CMD_ID:
+        {
+            memcpy(&game_result, buf + i + 7, sizeof(game_result));
+        }
+        break;
+        case GAME_ROBOT_HP_CMD_ID:
+        {
+            memcpy(&game_robot_HP, buf + i + 7, sizeof(game_robot_HP));
+        }
+        break;
+
+				// 0x01__
+        case FIELD_EVENTS_CMD_ID:
+        {
+            memcpy(&field_event, buf + i + 7, sizeof(field_event));
+        }
+        break;
+        case SUPPLY_PROJECTILE_ACTION_CMD_ID:
+        {
+            memcpy(&supply_projectile_action, buf + i + 7, sizeof(supply_projectile_action));
+        }
+        break;
+        case REFEREE_WARNING_CMD_ID:
+        {
+            memcpy(&referee_warning, buf + i + 7, sizeof(referee_warning));
+        }
+        break;
+				case DART_REMAINING_TIME_CMD_ID:{
+						memcpy(&dart_remaining_time, buf + i + 7, sizeof(dart_remaining_time));
+				}
+				break;
+				
+				// 0x02__
+        case ROBOT_STATE_CMD_ID:
+        {
+            memcpy(&robot_state, buf + i + 7, sizeof(robot_state));
+        }
+        break;
+        case POWER_HEAT_DATA_CMD_ID:
+        {
+            memcpy(&power_heat_data, buf + i + 7, sizeof(power_heat_data));
+        }
+        break;
+        case ROBOT_POS_CMD_ID:
+        {
+            memcpy(&game_robot_pos, buf + i + 7, sizeof(game_robot_pos));
+        }
+        break;
+        case BUFF_MUSK_CMD_ID:
+        {
+            memcpy(&robot_buff, buf + i + 7, sizeof(robot_buff));
+        }
+        break;
+        case AERIAL_ROBOT_ENERGY_CMD_ID:
+        {
+            memcpy(&robot_energy, buf + i + 7, sizeof(robot_energy));
+        }
+        break;
+        case ROBOT_HURT_CMD_ID:
+        {
+            memcpy(&robot_hurt, buf + i + 7, sizeof(robot_hurt));
+						if(robot_hurt.hurt_type == 0){
+							hit_count++;
+						}
+        }
+        break;
+        case SHOOT_DATA_CMD_ID:
+        {
+            memcpy(&shoot_data, buf + i + 7, sizeof(shoot_data));
+        }
+        break;
+        case BULLET_REMAINING_CMD_ID:
+        {
+            memcpy(&bullet_remaining, buf + i + 7, sizeof(bullet_remaining));
+        }
+        break;
+				
+				// 0x03__
+        case STUDENT_INTERACTIVE_DATA_CMD_ID:
+        {
+            memcpy(&student_interactive_data, buf + i + 7, sizeof(student_interactive_data));
+        }
+        break;
+        default:
+        {
+            break;
+        }
+			}
+		}
 	}
-	refree_buf_len = len;
 }
 
 
@@ -165,14 +310,23 @@ static void uart_rx_idle_callback(UART_HandleTypeDef* huart)
 	else if (huart == &huart6)
 	{
 		/* clear DMA transfer complete flag */
-		__HAL_DMA_DISABLE(huart->hdmarx);
+		// __HAL_DMA_DISABLE(huart->hdmarx);
 
+		
+		volatile uint32_t temp;
+		temp = huart1.Instance->SR;
+		temp = huart1.Instance->DR;
+		
+		HAL_UART_DMAStop(huart);
+		
 		/* handle refree data refree_buf from DMA */
 		refree_buffer_handler(refree_buf, REFREE_MAX_LEN - dma_current_data_counter(huart->hdmarx->Instance));	
 		
 		/* restart dma transmission */
 		__HAL_DMA_SET_COUNTER(huart->hdmarx, REFREE_MAX_LEN);
-		__HAL_DMA_ENABLE(huart->hdmarx);
+		// __HAL_DMA_ENABLE(huart->hdmarx);
+		
+		HAL_UART_Receive_DMA(huart, refree_buf, REFREE_MAX_LEN);//Restart DMA
 	}
 }
 
@@ -205,10 +359,13 @@ void dbus_uart_init(void)
 }
 
 void refree_uart_init(void){
-	/* open uart idle it */
+	/* open uart idle it 
 	__HAL_UART_CLEAR_IDLEFLAG(&REFREE_HUART);
 	__HAL_UART_ENABLE_IT(&REFREE_HUART, UART_IT_IDLE);
-
-	uart_receive_dma_no_it(&REFREE_HUART, refree_buf, REFREE_MAX_LEN);	
+	*/
+	__HAL_UART_ENABLE_IT(&REFREE_HUART, UART_IT_IDLE);//??idle??
+	HAL_UART_Receive_DMA(&REFREE_HUART, refree_buf, REFREE_MAX_LEN);//??DMA??,????rx_buffer????
+	
+	//uart_receive_dma_no_it(&REFREE_HUART, refree_buf, REFREE_MAX_LEN);	
 }
 
