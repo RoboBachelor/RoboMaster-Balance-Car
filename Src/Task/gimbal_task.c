@@ -23,6 +23,13 @@ uint8_t plot_start_index = 0;
 
 volatile uint32_t gimbal_cnt = 0;
 
+Chassis_Motor_t chassis_motor;
+
+float accel_gimbal_y;
+
+uint8_t chassis_auto_flag = 0;
+uint8_t chassis_dir_is_left = 1;
+
 void Gimbal_Task(void const* argument) {
     // Initialise the xLastWakeTime variable with the current time.
     TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -61,6 +68,15 @@ void Gimbal_Task(void const* argument) {
 		pitch_motor.gyro_pid.proportion_output_filter_coefficient = 0.8;
 		pitch_motor.gyro_pid.derivative_output_filter_coefficient = 0.8;
 		
+		/* Chassis Motor M3508 */
+		chassis_motor.chassis_motor_measure = motor_measure + 0;
+		float m3508_speed_pid_para[] = M3508_MOTOR_SPEED_PID;
+		PID_Init(&chassis_motor.pid_speed, PID_POSITION, m3508_speed_pid_para, M3508_MOTOR_SPEED_PID_MAX_OUT, M3508_MOTOR_SPEED_PID_MAX_IOUT);
+		
+		set_waring_buf_value(100.f);
+		
+		chassis_motor.accel_filter.a = 0.99;
+		
     vTaskDelay(1500);
 
 		yaw_motor.ecd_angle = (-yaw_motor.motor_measure->ecd + 4096) / 4096.f * 180.f;
@@ -68,6 +84,7 @@ void Gimbal_Task(void const* argument) {
     pitch_motor.angle_set = imu.eulerAngles.angle.pitch;
 		
     while (1) {
+				gimbal_cnt++;
         /* --- [1] Feedback from sensors --- */
 
         yaw_motor.motor_gyro = imu.gimbal_yaw_gyro;
@@ -82,6 +99,18 @@ void Gimbal_Task(void const* argument) {
 					trigger_is_on = ~trigger_is_on & 0x1;
 				}
 				last_trigger_sw_state = switch_is_up(rc.rc.s[1]);
+	
+				float tmp_speed = chassis_motor.chassis_motor_measure->speed_rpm * CHASSIS_MOTOR_RPM_TO_VECTOR_SEN;
+				chassis_motor.accel = tmp_speed - chassis_motor.speed;
+				chassis_motor.speed = tmp_speed;
+				
+				
+				
+				accel_gimbal_y = imu.accel.axis.y - 9.80665 * sinf(imu.eulerAngles.angle.pitch / 57.29577958f);
+				
+				chassis_motor.accel = accel_gimbal_y * cosf((yaw_motor.ecd_angle - 60) / 57.29577958f) + imu.accel.axis.x * sinf((yaw_motor.ecd_angle - 60) / 57.29577958f);
+				
+				filter_calc(&chassis_motor.accel_filter, chassis_motor.accel);
 				
         /* --- [2] Set mode and values from RC --- */
 
@@ -115,8 +144,27 @@ void Gimbal_Task(void const* argument) {
 				shoot_control.speed_set = rc.rc.ch[3] / 660.f * 5.f + 5.f;
 				
 
-        gimbal_cnt++;
+				if(switch_is_up(rc.rc.s[0])){
+					chassis_auto_flag = 1;
+				} else{
+					chassis_auto_flag = 0;
+				}
 
+				if(chassis_auto_flag){
+					if(chassis_dir_is_left){
+						chassis_motor.speed_set = 1.7f;
+						if(chassis_motor.accel_filter.out < -4.7f){
+							chassis_dir_is_left = 0;
+						}
+					} else{
+						chassis_motor.speed_set = -1.7f;
+						if(chassis_motor.accel_filter.out > 4.7f){
+							chassis_dir_is_left = 1;
+						}
+					}
+				} else{
+					chassis_motor.speed_set = rc.rc.ch[2] / 660.f * 4.f;
+				}
         /* --- [3] Calculate control variables --- */
 
         /* 250Hz Task */
@@ -148,6 +196,11 @@ void Gimbal_Task(void const* argument) {
         PID_Calc(&shoot_control.trigger_motor_pid, shoot_control.speed,
                  shoot_control.speed_set);
         shoot_control.given_current = (int16_t)(shoot_control.trigger_motor_pid.out);
+				
+				/* Chassis Motor PID */
+				chassis_motor.current_set = (int16_t)PID_Calc(&chassis_motor.pid_speed, chassis_motor.speed, chassis_motor.speed_set);
+				chassis_motor.give_current = (int16_t) chassis_power_control(chassis_motor.current_set);
+
 
         /* --- [4] Send current values via CAN --- */
 
@@ -165,9 +218,13 @@ void Gimbal_Task(void const* argument) {
         CAN_cmd_gimbal(yaw_motor.given_current, pitch_motor.given_current,
                        shoot_control.given_current, 0);
 
-				chassis_current_set = rc.rc.ch[2] * -10;
 
-				CAN_cmd_chassis(chassis_current_set, 0, 0, 0);
+	
+
+				/* Set chassis current from RC */
+				//chassis_current_set = rc.rc.ch[2] * -10;
+
+				CAN_cmd_chassis(chassis_motor.give_current, 0, 0, 0);
 
 
 				if(trigger_is_on){

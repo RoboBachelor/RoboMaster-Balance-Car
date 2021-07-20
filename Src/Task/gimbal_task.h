@@ -12,6 +12,8 @@
 #include "filter.h"
 #include "stdio.h"
 #include "bsp_lcd.h"
+#include "chassis_power_control.h"
+#include "filter.h"
 
 typedef enum
 {
@@ -96,8 +98,8 @@ typedef struct
 } shoot_control_t;
 
 
-#define PITCH_ANGLE_MAX 12.f
-#define PITCH_ANGLE_MIN -44.f
+#define PITCH_ANGLE_MAX 0.f
+#define PITCH_ANGLE_MIN -25.f
 
 //拨弹轮电机PID
 #define TRIGGER_ANGLE_PID_KP        800.0f
@@ -111,6 +113,34 @@ typedef struct
 #define TRIGGER_READY_PID_MAX_IOUT  4000.0f
 
 #define MOTOR_RPM_TO_SPEED          0.00290888208665721596153948461415f
+
+//底盘电机速度环PID
+#define M3508_MOTOR_SPEED_PID {12000.0f, 50.0f, 1000.0f}
+#define M3508_MOTOR_SPEED_PID_MAX_OUT 10000.0f
+#define M3508_MOTOR_SPEED_PID_MAX_IOUT 2000.0f
+
+#define M3508_MOTOR_POSITION_PID {2.0f, 0.0f, 0.0f}
+
+//m3508转化成底盘速度(m/s)的比例，做两个宏 是因为可能换电机需要更换比例
+#define M3508_MOTOR_RPM_TO_VECTOR 0.000415809748903494517209f
+#define CHASSIS_MOTOR_RPM_TO_VECTOR_SEN M3508_MOTOR_RPM_TO_VECTOR
+
+typedef struct
+{
+  const motor_measure_t *chassis_motor_measure;
+  float accel;
+	filter_t accel_filter;
+  float speed;
+  float speed_set;
+	float distance_cm;
+	float distance_cm_set;
+	float current_set;
+	uint8_t initialized;
+  int16_t give_current;
+	int32_t ecd_cum_min;
+	PidTypeDef pid_speed;
+	PidTypeDef pid_position;
+} Chassis_Motor_t;
 
 void usb_cdc_unpackage(uint8_t* Buf, uint32_t *Len);
 
