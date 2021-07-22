@@ -132,9 +132,10 @@ int main(void)
 	refree_uart_init();
 	can_filter_init();
 	trigger_pwm_start();
+	NVIC_SetPriorityGrouping(0);
 	//Lcd_Init();
 	
-	//sprintf(lcd_str, "Init...");//½«LCD ID´òÓ¡µ½lcd_idÊý×é¡£	
+	//sprintf(lcd_str, "Init...");//ï¿½ï¿½LCD IDï¿½ï¿½Ó¡ï¿½ï¿½lcd_idï¿½ï¿½ï¿½é¡£	
 	//LCD_ShowString(1, 1, lcd_str);
 		
   /* USER CODE END 2 */
@@ -206,7 +207,7 @@ void SystemClock_Config(void)
 
 /* USER CODE END 4 */
 
- /**
+/**
   * @brief  Period elapsed callback in non blocking mode
   * @note   This function is called  when TIM7 interrupt took place, inside
   * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment

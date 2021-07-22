@@ -30,275 +30,295 @@ float accel_gimbal_y;
 uint8_t chassis_auto_flag = 0;
 uint8_t chassis_dir_is_left = 1;
 
-void Gimbal_Task(void const* argument) {
-    // Initialise the xLastWakeTime variable with the current time.
-    TickType_t xLastWakeTime = xTaskGetTickCount();
+void Gimbal_Task(void const *argument) {
+	// Initialise the xLastWakeTime variable with the current time.
+	TickType_t xLastWakeTime = xTaskGetTickCount();
 
-    // Init Yaw and pitch motors PID parameters
-    float yaw_gyro_pid[3] = {400.0f, 0, 100000.0f};
-    float yaw_angle_pid[3] = {17, 0, 0.85};
+	// Init Yaw and pitch motors PID parameters
+	float yaw_gyro_pid[3] = { 400.0f, 0, 100000.0f };
+	float yaw_angle_pid[3] = { 17, 0, 0.85 };
 
-    float yaw_ecd_angle_pid[3] = {12, 0, 0.35};
-    float pitch_gyro_pid[3] = {50.f, 0.2f, 100.f};
-    float pitch_angle_pid[3] = {50, 0.4, 0.12};
+	float yaw_ecd_angle_pid[3] = { 12, 0, 0.35 };
+	float pitch_gyro_pid[3] = { 50.f, 0.2f, 100.f };
+	float pitch_angle_pid[3] = { 50, 0.4, 0.12 };
 
-    // Set motor measure pointers point to motor_measure[] in bsp_can.c
-    yaw_motor.motor_measure = motor_measure + 4;
-    pitch_motor.motor_measure = motor_measure + 5;
+	// Set motor measure pointers point to motor_measure[] in bsp_can.c
+	yaw_motor.motor_measure = motor_measure + 4;
+	pitch_motor.motor_measure = motor_measure + 5;
 
-    // Init gyro (angle speed) PIDs
-    PID_Init(&yaw_motor.gyro_pid, PID_POSITION, yaw_gyro_pid, 30000, 10000);
-    PID_Init(&pitch_motor.gyro_pid, PID_POSITION, pitch_gyro_pid, 30000, 15000);
+	// Init gyro (angle speed) PIDs
+	PID_Init(&yaw_motor.gyro_pid, PID_POSITION, yaw_gyro_pid, 30000, 10000);
+	PID_Init(&pitch_motor.gyro_pid, PID_POSITION, pitch_gyro_pid, 30000, 15000);
 
-    // Init angle (ecd or imu) PIDs
-    PID_Init(&yaw_motor.angle_pid, PID_POSITION, yaw_angle_pid, 800, 80);
-    PID_Init(&pitch_motor.angle_pid, PID_POSITION, pitch_angle_pid, 200, 40);
+	// Init angle (ecd or imu) PIDs
+	PID_Init(&yaw_motor.angle_pid, PID_POSITION, yaw_angle_pid, 800, 80);
+	PID_Init(&pitch_motor.angle_pid, PID_POSITION, pitch_angle_pid, 200, 40);
 
-    // Init current out filter
-    filter_init(&yaw_motor.current_filter, 60.f);
-    filter_init(&pitch_motor.current_filter, 45.f);
+	// Init current out filter
+	filter_init(&yaw_motor.current_filter, 60.f);
+	filter_init(&pitch_motor.current_filter, 45.f);
 
-    float Trigger_speed_pid[3] = {TRIGGER_ANGLE_PID_KP, TRIGGER_ANGLE_PID_KI, TRIGGER_ANGLE_PID_KD};
-    shoot_control.shoot_motor_measure = motor_measure + 6;
-    PID_Init(&shoot_control.trigger_motor_pid, PID_POSITION, Trigger_speed_pid, TRIGGER_READY_PID_MAX_OUT, TRIGGER_READY_PID_MAX_IOUT);
-	
-		yaw_motor.gyro_pid.proportion_output_filter_coefficient = 0.95;
-		yaw_motor.gyro_pid.derivative_output_filter_coefficient = 0.99995;
-		
-		pitch_motor.gyro_pid.proportion_output_filter_coefficient = 0.8;
-		pitch_motor.gyro_pid.derivative_output_filter_coefficient = 0.8;
-		
-		/* Chassis Motor M3508 */
-		chassis_motor.chassis_motor_measure = motor_measure + 0;
-		float m3508_speed_pid_para[] = M3508_MOTOR_SPEED_PID;
-		PID_Init(&chassis_motor.pid_speed, PID_POSITION, m3508_speed_pid_para, M3508_MOTOR_SPEED_PID_MAX_OUT, M3508_MOTOR_SPEED_PID_MAX_IOUT);
-		
-		set_waring_buf_value(100.f);
-		
-		chassis_motor.accel_filter.a = 0.99;
-		
-    vTaskDelay(1500);
+	float Trigger_speed_pid[3] = { TRIGGER_ANGLE_PID_KP, TRIGGER_ANGLE_PID_KI,
+			TRIGGER_ANGLE_PID_KD };
+	shoot_control.shoot_motor_measure = motor_measure + 6;
+	PID_Init(&shoot_control.trigger_motor_pid, PID_POSITION, Trigger_speed_pid,
+			TRIGGER_READY_PID_MAX_OUT, TRIGGER_READY_PID_MAX_IOUT);
 
-		yaw_motor.ecd_angle = (-yaw_motor.motor_measure->ecd + 4096) / 4096.f * 180.f;
-    yaw_motor.angle_set 	= yaw_motor.ecd_angle;
-    pitch_motor.angle_set = imu.eulerAngles.angle.pitch;
-		
-    while (1) {
-				gimbal_cnt++;
-        /* --- [1] Feedback from sensors --- */
+	yaw_motor.gyro_pid.proportion_output_filter_coefficient = 0.95;
+	yaw_motor.gyro_pid.derivative_output_filter_coefficient = 0.99995;
 
-        yaw_motor.motor_gyro = imu.gimbal_yaw_gyro;
-        pitch_motor.motor_gyro = imu.gyro.axis.x;
+	pitch_motor.gyro_pid.proportion_output_filter_coefficient = 0.8;
+	pitch_motor.gyro_pid.derivative_output_filter_coefficient = 0.8;
 
-        yaw_motor.ecd_angle = (-yaw_motor.motor_measure->ecd + 4096) / 4096.f * 180.f;
-				yaw_motor.imu_angle = imu.eulerAngles.angle.yaw;
-			
-        shoot_control.speed = shoot_control.shoot_motor_measure->speed_rpm * MOTOR_RPM_TO_SPEED;
+	/* Chassis Motor M3508 */
+	chassis_motor.chassis_motor_measure = motor_measure + 0;
+	float m3508_speed_pid_para[] = M3508_MOTOR_SPEED_PID;
+	PID_Init(&chassis_motor.pid_speed, PID_POSITION, m3508_speed_pid_para,
+			M3508_MOTOR_SPEED_PID_MAX_OUT, M3508_MOTOR_SPEED_PID_MAX_IOUT);
 
-				if(!last_trigger_sw_state && switch_is_up(rc.rc.s[1])){
-					trigger_is_on = ~trigger_is_on & 0x1;
+	set_waring_buf_value(100.f);
+
+	chassis_motor.accel_filter.a = 0.99;
+
+	vTaskDelay(1500);
+
+	yaw_motor.ecd_angle = (-yaw_motor.motor_measure->ecd + 4096) / 4096.f
+			* 180.f;
+	yaw_motor.angle_set = yaw_motor.ecd_angle;
+	pitch_motor.angle_set = imu.eulerAngles.angle.pitch;
+
+	while (1) {
+		gimbal_cnt++;
+		/* --- [1] Feedback from sensors --- */
+
+		yaw_motor.motor_gyro = imu.gimbal_yaw_gyro;
+		pitch_motor.motor_gyro = imu.gyro.axis.x;
+
+		yaw_motor.ecd_angle = (-yaw_motor.motor_measure->ecd + 4096) / 4096.f
+				* 180.f;
+		yaw_motor.imu_angle = imu.eulerAngles.angle.yaw;
+
+		shoot_control.speed = shoot_control.shoot_motor_measure->speed_rpm
+				* MOTOR_RPM_TO_SPEED;
+
+		if (!last_trigger_sw_state && switch_is_up(rc.rc.s[1])) {
+			trigger_is_on = ~trigger_is_on & 0x1;
+		}
+		last_trigger_sw_state = switch_is_up(rc.rc.s[1]);
+
+		float tmp_speed = chassis_motor.chassis_motor_measure->speed_rpm
+				* CHASSIS_MOTOR_RPM_TO_VECTOR_SEN;
+		chassis_motor.accel = tmp_speed - chassis_motor.speed;
+		chassis_motor.speed = tmp_speed;
+
+		accel_gimbal_y = imu.accel.axis.y
+				* cosf(imu.eulerAngles.angle.pitch / 57.29577958f)
+				- imu.accel.axis.z
+						* sinf(imu.eulerAngles.angle.pitch / 57.29577958f);
+
+		chassis_motor.accel = accel_gimbal_y
+				* cosf((yaw_motor.ecd_angle - 60) / 57.29577958f)
+				+ imu.accel.axis.x
+						* sinf((yaw_motor.ecd_angle - 60) / 57.29577958f);
+
+		filter_calc(&chassis_motor.accel_filter, chassis_motor.accel);
+
+		/* --- [2] Set mode and values from RC --- */
+
+		/* Set gyro from RC
+		 yaw_motor.motor_gyro_set = - rc.rc.ch[0] / 3.f;
+		 pitch_motor.motor_gyro_set = rc.rc.ch[1] / 3.f;
+		 */
+		/* Set angle increasement from RC */
+		yaw_motor.angle_set -= rc.rc.ch[0] / 3300.f;
+		pitch_motor.angle_set += rc.rc.ch[1] / 3300.f;
+
+		if (pitch_motor.angle_set > PITCH_ANGLE_MAX)
+			pitch_motor.angle_set = PITCH_ANGLE_MAX;
+		if (pitch_motor.angle_set < PITCH_ANGLE_MIN)
+			pitch_motor.angle_set = PITCH_ANGLE_MIN;
+
+		if (yaw_motor.angle_set > 180.f)
+			yaw_motor.angle_set -= 360.f;
+		if (yaw_motor.angle_set < -180.f)
+			yaw_motor.angle_set += 360.f;
+
+		/* Set angle from RC
+		 yaw_motor.angle_set = -rc.rc.ch[0] / 10.f;
+		 pitch_motor.angle_set = rc.rc.ch[1] / 10.f - 10.f;
+		 */
+
+		/* Set trigger speed from RC
+		 if (switch_is_down(rc.rc.s[1]) && trigger_is_on) {
+		 shoot_control.speed_set = 2.f;
+		 } else {
+		 shoot_control.speed_set = 0.f;
+		 }
+		 */
+
+		shoot_control.speed_set = rc.rc.ch[3] / 660.f * 5.f + 5.f;
+
+		if (switch_is_up(rc.rc.s[0])) {
+			chassis_auto_flag = 1;
+		} else {
+			chassis_auto_flag = 0;
+		}
+
+		if (chassis_auto_flag) {
+			if (chassis_dir_is_left) {
+				chassis_motor.speed_set = 1.7f;
+				if (chassis_motor.accel_filter.out < -4.7f) {
+					chassis_dir_is_left = 0;
 				}
-				last_trigger_sw_state = switch_is_up(rc.rc.s[1]);
-	
-				float tmp_speed = chassis_motor.chassis_motor_measure->speed_rpm * CHASSIS_MOTOR_RPM_TO_VECTOR_SEN;
-				chassis_motor.accel = tmp_speed - chassis_motor.speed;
-				chassis_motor.speed = tmp_speed;
-				
-				
-				
-				accel_gimbal_y = imu.accel.axis.y - 9.80665 * sinf(imu.eulerAngles.angle.pitch / 57.29577958f);
-				
-				chassis_motor.accel = accel_gimbal_y * cosf((yaw_motor.ecd_angle - 60) / 57.29577958f) + imu.accel.axis.x * sinf((yaw_motor.ecd_angle - 60) / 57.29577958f);
-				
-				filter_calc(&chassis_motor.accel_filter, chassis_motor.accel);
-				
-        /* --- [2] Set mode and values from RC --- */
-
-        /* Set gyro from RC
-        yaw_motor.motor_gyro_set = - rc.rc.ch[0] / 3.f;
-        pitch_motor.motor_gyro_set = rc.rc.ch[1] / 3.f;
-        */
-        /* Set angle increasement from RC */
-        yaw_motor.angle_set -= rc.rc.ch[0] / 3300.f;
-        pitch_motor.angle_set += rc.rc.ch[1] / 3300.f;
-
-        if(pitch_motor.angle_set > PITCH_ANGLE_MAX) pitch_motor.angle_set = PITCH_ANGLE_MAX;
-        if(pitch_motor.angle_set < PITCH_ANGLE_MIN) pitch_motor.angle_set = PITCH_ANGLE_MIN;
-        
-				if(yaw_motor.angle_set > 180.f) yaw_motor.angle_set -= 360.f;
-        if(yaw_motor.angle_set < -180.f) yaw_motor.angle_set += 360.f;
-				
-        /* Set angle from RC 
-        yaw_motor.angle_set = -rc.rc.ch[0] / 10.f;
-        pitch_motor.angle_set = rc.rc.ch[1] / 10.f - 10.f;
-				*/
-				
-        /* Set trigger speed from RC 
-        if (switch_is_down(rc.rc.s[1]) && trigger_is_on) {
-            shoot_control.speed_set = 2.f;
-        } else {
-            shoot_control.speed_set = 0.f;
-        }
-				*/
-				
-				shoot_control.speed_set = rc.rc.ch[3] / 660.f * 5.f + 5.f;
-				
-
-				if(switch_is_up(rc.rc.s[0])){
-					chassis_auto_flag = 1;
-				} else{
-					chassis_auto_flag = 0;
+			} else {
+				chassis_motor.speed_set = -1.7f;
+				if (chassis_motor.accel_filter.out > 4.7f) {
+					chassis_dir_is_left = 1;
 				}
+			}
+		} else {
+			chassis_motor.speed_set = rc.rc.ch[2] / 660.f * 4.f;
+		}
+		/* --- [3] Calculate control variables --- */
 
-				if(chassis_auto_flag){
-					if(chassis_dir_is_left){
-						chassis_motor.speed_set = 1.7f;
-						if(chassis_motor.accel_filter.out < -4.7f){
-							chassis_dir_is_left = 0;
-						}
-					} else{
-						chassis_motor.speed_set = -1.7f;
-						if(chassis_motor.accel_filter.out > 4.7f){
-							chassis_dir_is_left = 1;
-						}
-					}
-				} else{
-					chassis_motor.speed_set = rc.rc.ch[2] / 660.f * 4.f;
-				}
-        /* --- [3] Calculate control variables --- */
+		/* 250Hz Task */
+		// if(++counter_div_4 >= 4){
+		// 	counter_div_4 = 0;
+		// 	plot_data[plot_start_index] = (int8_t) pitch_motor.gyro_filter.out;
+		// 	plot_data2[plot_start_index] = (int8_t) pitch_motor.motor_gyro_set;
+		// 	plot_start_index++;
+		// 	if(plot_start_index >= 240) plot_start_index = 0;
+		// }
+		/* Angle loop PID calc: 250Hz */
+		yaw_motor.motor_gyro_set = gimbal_PID_calc(&yaw_motor.angle_pid,
+				yaw_motor.imu_angle, yaw_motor.angle_set,
+				-yaw_motor.motor_gyro);
+		pitch_motor.motor_gyro_set = gimbal_PID_calc(&pitch_motor.angle_pid,
+				imu.eulerAngles.angle.pitch, pitch_motor.angle_set,
+				-pitch_motor.motor_gyro);
 
-        /* 250Hz Task */
-        // if(++counter_div_4 >= 4){
-        // 	counter_div_4 = 0;
+		/* Gyro loop PID */
+		yaw_motor.current_set = PID_Calc(&yaw_motor.gyro_pid,
+				yaw_motor.motor_gyro, yaw_motor.motor_gyro_set);
+		pitch_motor.current_set = PID_Calc(&pitch_motor.gyro_pid,
+				pitch_motor.motor_gyro, pitch_motor.motor_gyro_set);
 
-        // 	plot_data[plot_start_index] = (int8_t) pitch_motor.gyro_filter.out;
-        // 	plot_data2[plot_start_index] = (int8_t) pitch_motor.motor_gyro_set;
-        // 	plot_start_index++;
-        // 	if(plot_start_index >= 240) plot_start_index = 0;
+		/* Trigger motor PID */
+		PID_Calc(&shoot_control.trigger_motor_pid, shoot_control.speed,
+				shoot_control.speed_set);
+		shoot_control.given_current =
+				(int16_t) (shoot_control.trigger_motor_pid.out);
 
-        // }
+		/* Chassis Motor PID */
+		chassis_motor.current_set = (int16_t) PID_Calc(&chassis_motor.pid_speed,
+				chassis_motor.speed, chassis_motor.speed_set);
+		chassis_motor.give_current = (int16_t) chassis_power_control(
+				chassis_motor.current_set);
 
-        /* Angle loop PID calc: 250Hz */
-        yaw_motor.motor_gyro_set = gimbal_PID_calc(
-            &yaw_motor.angle_pid, yaw_motor.imu_angle, yaw_motor.angle_set,
-            -yaw_motor.motor_gyro);
-        pitch_motor.motor_gyro_set = gimbal_PID_calc(
-            &pitch_motor.angle_pid, imu.eulerAngles.angle.pitch, pitch_motor.angle_set,
-            -pitch_motor.motor_gyro);
+		/* --- [4] Send current values via CAN --- */
 
-        /* Gyro loop PID */
-        yaw_motor.current_set = PID_Calc(&yaw_motor.gyro_pid, yaw_motor.motor_gyro,
-                                         yaw_motor.motor_gyro_set);
-        pitch_motor.current_set = PID_Calc(
-            &pitch_motor.gyro_pid, pitch_motor.motor_gyro, pitch_motor.motor_gyro_set);
+		/* Enable current filter
+		 yaw_motor.given_current = - (int16_t) filter_calc(&yaw_motor.current_filter, yaw_motor.current_set);
+		 pitch_motor.given_current = (int16_t) (filter_calc(&pitch_motor.current_filter, pitch_motor.current_set) + 6000.f * cosf(imu.eulerAngles.angle.pitch / 57.29577958f));
+		 */
 
-        /* Trigger motor PID */
-        PID_Calc(&shoot_control.trigger_motor_pid, shoot_control.speed,
-                 shoot_control.speed_set);
-        shoot_control.given_current = (int16_t)(shoot_control.trigger_motor_pid.out);
-				
-				/* Chassis Motor PID */
-				chassis_motor.current_set = (int16_t)PID_Calc(&chassis_motor.pid_speed, chassis_motor.speed, chassis_motor.speed_set);
-				chassis_motor.give_current = (int16_t) chassis_power_control(chassis_motor.current_set);
+		/* Disable current filter */
+		yaw_motor.given_current = -(int16_t) yaw_motor.current_set;
+		pitch_motor.given_current = (int16_t) (pitch_motor.current_set
+				+ 6000.f * cosf(imu.eulerAngles.angle.pitch / 57.29577958f));
 
+		CAN_cmd_gimbal(yaw_motor.given_current, pitch_motor.given_current,
+				shoot_control.given_current, 0);
 
-        /* --- [4] Send current values via CAN --- */
+		/* Set chassis current from RC */
+		//chassis_current_set = rc.rc.ch[2] * -10;
+		CAN_cmd_chassis(chassis_motor.give_current, 0, 0, 0);
 
-        /* Enable current filter
-        yaw_motor.given_current = - (int16_t) filter_calc(&yaw_motor.current_filter, yaw_motor.current_set);
-        pitch_motor.given_current = (int16_t) (filter_calc(&pitch_motor.current_filter, pitch_motor.current_set) + 6000.f * cosf(imu.eulerAngles.angle.pitch / 57.29577958f));
-        */
+		if (trigger_is_on) {
+			trigger_target_pulse = 1350.f;
+		} else {
+			trigger_target_pulse = 1000.f;
+		}
 
-        /* Disable current filter */
-        yaw_motor.given_current = -(int16_t)yaw_motor.current_set;
-        pitch_motor.given_current = (int16_t)(pitch_motor.current_set +
-                                              6000.f *
-                                                  cosf(imu.eulerAngles.angle.pitch / 57.29577958f));
+		if (trigger_target_pulse - trigger_send_pulse > 0.15) {
+			trigger_send_pulse += 0.15;
+		} else if (trigger_target_pulse - trigger_send_pulse < -0.15) {
+			trigger_send_pulse -= 0.15;
+		} else {
+			trigger_send_pulse = trigger_target_pulse;
+		}
 
-        CAN_cmd_gimbal(yaw_motor.given_current, pitch_motor.given_current,
-                       shoot_control.given_current, 0);
+		trigger_set_pulse((uint16_t) trigger_send_pulse);
 
-
-	
-
-				/* Set chassis current from RC */
-				//chassis_current_set = rc.rc.ch[2] * -10;
-
-				CAN_cmd_chassis(chassis_motor.give_current, 0, 0, 0);
-
-
-				if(trigger_is_on){
-					trigger_target_pulse = 1350.f;
-				} else{
-					trigger_target_pulse = 1000.f;
-				}
-
-				if(trigger_target_pulse - trigger_send_pulse > 0.15){
-					trigger_send_pulse += 0.15;
-				} else if(trigger_target_pulse - trigger_send_pulse < -0.15){
-					trigger_send_pulse -= 0.15;
-				} else{
-					trigger_send_pulse = trigger_target_pulse;
-				}
-				
-        trigger_set_pulse((uint16_t)trigger_send_pulse);
-
-        /* Wait for the next cycle */
-        vTaskDelayUntil(&xLastWakeTime, 1);
-    }
+		/* Wait for the next cycle */
+		vTaskDelayUntil(&xLastWakeTime, 1);
+	}
 }
 
-int16_t d1, d2, d3;
+typedef struct {
+	uint8_t header;
+	uint8_t latency;
+	uint8_t found_target;
+	float yaw, pitch, dist;
+} __packed vision_rx_t;
 
-void usb_cdc_unpackage(uint8_t* Buf, uint32_t* Len) {
-    char command[10];
-    sscanf((char*)Buf, "%s", command);
-    if (strcmp(command, "DIST") == 0) {
-        sscanf((char*)Buf + 4, "%hd%hd%hd", &d1, &d2, &d3);
-    }
+vision_rx_t vision_rx;
+
+void usb_cdc_unpackage(uint8_t *Buf, uint32_t *Len) {
+	if (*Len < 15) {
+		return;
+	}
+	if (Buf[0] != 0xF6) {
+		return;
+	}
+	memcpy(&vision_rx, Buf, sizeof(vision_rx));
 }
 
 int8_t plot_buf[240];
 int8_t plot2_buf[240];
 
-void LCD_Task(void const* argument) {
-    POINT_COLOR = WHITE;
-    LCD_Clear(BLACK);
+void LCD_Task(void const *argument) {
 
-    /*
-    LCD_ShowString(20, 20, "x=20,y=20");
+	/*
+	 POINT_COLOR = WHITE;
+	 LCD_Clear(BLACK);
 
-    LCD_ShowString(20, 160, "x=20,y=160");
-    LCD_ShowString(160, 20, "x=160,y=20");
-    LCD_ShowString(160, 160, "x=160,y=160");
+	 LCD_ShowString(20, 20, "x=20,y=20");
 
-    vTaskDelay(10000);
-    */
+	 LCD_ShowString(20, 160, "x=20,y=160");
+	 LCD_ShowString(160, 20, "x=160,y=20");
+	 LCD_ShowString(160, 160, "x=160,y=160");
 
-    // Initialise the xLastWakeTime variable with the current time.
-    TickType_t xLastWakeTime = xTaskGetTickCount();
+	 vTaskDelay(10000);
+	 */
 
-    while (1) {
-        POINT_COLOR = BLACK;
+	// Initialise the xLastWakeTime variable with the current time.
+	TickType_t xLastWakeTime = xTaskGetTickCount();
 
-        for (uint8_t i = 0; i < 240; ++i) {
-            LCD_DrawPoint(i, 120 - plot_buf[i]);
-            LCD_DrawPoint(i, 120 - plot2_buf[i]);
-        }
+	while (1) {
 
-        uint8_t j = plot_start_index;
-        for (uint8_t i = 0; i < 240; ++i) {
-            plot_buf[i] = plot_data[j];
-            plot2_buf[i] = plot_data2[j];
-            POINT_COLOR = WHITE;
-            LCD_DrawPoint(i, 120 - plot_buf[i]);
+		/*
+		 POINT_COLOR = BLACK;
 
-            POINT_COLOR = GREEN;
-            LCD_DrawPoint(i, 120 - plot2_buf[i]);
-            if (++j >= 240) j = 0;
-        }
+		 for (uint8_t i = 0; i < 240; ++i) {
+		 LCD_DrawPoint(i, 120 - plot_buf[i]);
+		 LCD_DrawPoint(i, 120 - plot2_buf[i]);
+		 }
 
-        /* Wait for the next cycle */
-        vTaskDelayUntil(&xLastWakeTime, 45);
-    }
+		 uint8_t j = plot_start_index;
+		 for (uint8_t i = 0; i < 240; ++i) {
+		 plot_buf[i] = plot_data[j];
+		 plot2_buf[i] = plot_data2[j];
+		 POINT_COLOR = WHITE;
+		 LCD_DrawPoint(i, 120 - plot_buf[i]);
+
+		 POINT_COLOR = GREEN;
+		 LCD_DrawPoint(i, 120 - plot2_buf[i]);
+		 if (++j >= 240) j = 0;
+		 }
+		 */
+
+		/* Wait for the next cycle */
+		vTaskDelayUntil(&xLastWakeTime, 45);
+	}
 }

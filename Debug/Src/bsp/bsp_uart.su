@@ -1,0 +1,8 @@
+bsp_uart.c:30:12:uart_receive_dma_no_it	32	static
+bsp_uart.c:70:10:dma_current_data_counter	16	static
+bsp_uart.c:84:6:rc_callback_handler	16	static
+bsp_uart.c:153:6:refree_buffer_handler	32	static
+bsp_uart.c:287:13:uart_rx_idle_callback	24	static
+bsp_uart.c:338:6:uart_receive_handler	16	static
+bsp_uart.c:352:6:dbus_uart_init	16	static
+bsp_uart.c:361:6:refree_uart_init	8	static

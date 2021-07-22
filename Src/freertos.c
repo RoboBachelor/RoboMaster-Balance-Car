@@ -59,36 +59,36 @@ extern uint8_t               ist_buff[6];                           /* buffer to
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
+  .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
-  .stack_size = 128 * 4
 };
 /* Definitions for LED_Blink_Task */
 osThreadId_t LED_Blink_TaskHandle;
 const osThreadAttr_t LED_Blink_Task_attributes = {
   .name = "LED_Blink_Task",
+  .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityBelowNormal,
-  .stack_size = 128 * 4
 };
 /* Definitions for INS_Update_Task */
 osThreadId_t INS_Update_TaskHandle;
 const osThreadAttr_t INS_Update_Task_attributes = {
   .name = "INS_Update_Task",
+  .stack_size = 1024 * 4,
   .priority = (osPriority_t) osPriorityRealtime,
-  .stack_size = 1024 * 4
 };
 /* Definitions for Gimbal_Control */
 osThreadId_t Gimbal_ControlHandle;
 const osThreadAttr_t Gimbal_Control_attributes = {
   .name = "Gimbal_Control",
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityHigh,
-  .stack_size = 512 * 4
 };
 /* Definitions for LCD_Refresh */
 osThreadId_t LCD_RefreshHandle;
 const osThreadAttr_t LCD_Refresh_attributes = {
   .name = "LCD_Refresh",
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityLow,
-  .stack_size = 512 * 4
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -228,7 +228,7 @@ void StartDefaultTask(void *argument)
 
 		vTaskGetRunTimeStats(buf);
 		sprintf(buf + strlen(buf), "xTaskGetTickCount()=%d\n", xTaskGetTickCount());
-		CDC_Transmit_FS((uint8_t*) buf, strlen(buf));
+		//sCDC_Transmit_FS((uint8_t*) buf, strlen(buf));
   }
   /* USER CODE END StartDefaultTask */
 }

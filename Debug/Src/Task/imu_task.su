@@ -1,0 +1,2 @@
+imu_task.c:19:6:INS_Task	168	static
+imu_task.c:58:6:Wake_up_IMU_Task	8	static,ignoring_inline_asm

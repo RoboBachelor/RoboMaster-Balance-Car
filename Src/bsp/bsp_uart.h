@@ -101,13 +101,13 @@ typedef struct
  uint8_t game_progress : 4;
  uint16_t stage_remain_time;
 uint64_t SyncTimeStamp;
-} ext_game_status_t;
+}__packed ext_game_status_t;
 
 // 0x0002
 typedef struct
 {
     uint8_t winner;
-} ext_game_result_t;
+}__packed ext_game_result_t;
 
 // 0x0003
 typedef struct
@@ -128,13 +128,13 @@ typedef struct
 	uint16_t blue_7_robot_HP;
 	uint16_t blue_outpost_HP;
 	uint16_t blue_base_HP;
-} ext_game_robot_HP_t;
+}__packed ext_game_robot_HP_t;
 
 
 typedef struct //0x0101
 {
     uint32_t event_type;
-} ext_event_data_t;
+}__packed ext_event_data_t;
 
 typedef struct //0x0102
 {
@@ -142,19 +142,19 @@ typedef struct //0x0102
     uint8_t supply_robot_id;
     uint8_t supply_projectile_step;
     uint8_t supply_projectile_num;
-} ext_supply_projectile_action_t;
+}__packed ext_supply_projectile_action_t;
 
 typedef struct //0x0104
 {
     uint8_t level;
     uint8_t foul_robot_id;
-} ext_referee_warning_t;
+}__packed ext_referee_warning_t;
 
 // 0x0105
 typedef struct
 {
 	uint8_t dart_remaining_time;
-} ext_dart_remaining_time_t;
+}__packed ext_dart_remaining_time_t;
 
 // 0x0201
 typedef struct
@@ -176,7 +176,7 @@ typedef struct
 	uint8_t mains_power_gimbal_output : 1;
 	uint8_t mains_power_chassis_output : 1;
 	uint8_t mains_power_shooter_output : 1;
-} ext_game_robot_status_t;
+}__packed ext_game_robot_status_t;
 
 // 0x0202
 typedef struct
@@ -188,7 +188,7 @@ typedef struct
 	uint16_t shooter_id1_17mm_cooling_heat;
 	uint16_t shooter_id2_17mm_cooling_heat;
 	uint16_t shooter_id1_42mm_cooling_heat;
-} ext_power_heat_data_t;
+}__packed ext_power_heat_data_t;
 
 typedef struct //0x0203
 {
@@ -196,23 +196,23 @@ typedef struct //0x0203
     float y;
     float z;
     float yaw;
-} ext_game_robot_pos_t;
+}__packed ext_game_robot_pos_t;
 
 typedef struct //0x0204
 {
     uint8_t power_rune_buff;
-} ext_buff_t;
+}__packed ext_buff_t;
 
 typedef struct //0x0205
 {
     uint8_t attack_time;
-} aerial_robot_energy_t;
+}__packed aerial_robot_energy_t;
 
 typedef struct //0x0206
 {
     uint8_t armor_id : 4;
     uint8_t hurt_type : 4;
-} ext_robot_hurt_t;
+}__packed ext_robot_hurt_t;
 
 // 0x0207
 typedef struct
@@ -221,7 +221,7 @@ typedef struct
 	uint8_t shooter_id;
 	uint8_t bullet_freq;
 	float bullet_speed;
-} ext_shoot_data_t;
+}__packed ext_shoot_data_t;
 
 // 0x0208
 typedef struct
@@ -229,14 +229,14 @@ typedef struct
 	uint16_t bullet_remaining_num_17mm;
 	uint16_t bullet_remaining_num_42mm;
 	uint16_t coin_remaining_num;
-} ext_bullet_remaining_t;
+}__packed ext_bullet_remaining_t;
 
 
 // 0x0209
 typedef struct
 {
 	uint32_t rfid_status;
-} ext_rfid_status_t;
+}__packed ext_rfid_status_t;
 
 // 0x020A
 typedef struct
@@ -245,7 +245,7 @@ typedef struct
 	uint8_t dart_attack_target;
 	uint16_t target_change_time;
 	uint16_t operate_launch_cmd_time;
-} ext_dart_client_cmd_t;
+}__packed ext_dart_client_cmd_t;
 
 /* 0x0301 Robot Interative Data */
 typedef struct
@@ -254,7 +254,7 @@ typedef struct
 	uint16_t sender_ID;
 	uint16_t receiver_ID;
 	// TODO: Add our robot interactive format here. Max: 113 bytes.
-}ext_student_interactive_data_t;
+}__packed ext_student_interactive_data_t;
 
 
 typedef struct
@@ -263,7 +263,7 @@ typedef struct
     float data2;
     float data3;
     uint8_t data4;
-} custom_data_t;
+}__packed custom_data_t;
 
 
 typedef struct
@@ -274,7 +274,7 @@ typedef struct
 typedef struct
 {
     uint8_t data[32];
-} ext_download_stream_data_t;
+}__packed ext_download_stream_data_t;
 
 
 void uart_receive_handler(UART_HandleTypeDef *huart);
