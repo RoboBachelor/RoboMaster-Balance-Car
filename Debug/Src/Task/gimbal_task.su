@@ -1,3 +1,4 @@
-gimbal_task.c:33:6:Gimbal_Task	120	static
-gimbal_task.c:260:6:usb_cdc_unpackage	16	static
-gimbal_task.c:273:6:LCD_Task	24	static
+gimbal_task.c:51:6:deg_limit	16	static
+gimbal_task.c:56:6:Gimbal_Task	120	static
+gimbal_task.c:292:6:usb_cdc_unpackage	24	static
+gimbal_task.c:315:6:LCD_Task	24	static

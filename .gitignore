@@ -3,6 +3,7 @@ Listing
 cmake-build-debug/
 MDK-ARM/.vscode/
 Output  
+Debug
 *.bak
 *.ddk
 *.edk

@@ -1,2 +1,4 @@
-imu_task.c:19:6:INS_Task	168	static
-imu_task.c:58:6:Wake_up_IMU_Task	8	static,ignoring_inline_asm
+imu_task.c:28:8:get_history_eular_angle	32	static
+imu_task.c:45:13:update_history_eular_angle	16	static
+imu_task.c:56:6:INS_Task	168	static
+imu_task.c:103:6:Wake_up_IMU_Task	8	static,ignoring_inline_asm

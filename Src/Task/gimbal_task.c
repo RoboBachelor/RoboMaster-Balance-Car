@@ -17,18 +17,41 @@ uint8_t counter_div_4;
 
 shoot_control_t shoot_control;
 
-int8_t plot_data[240];
-int8_t plot_data2[240];
-uint8_t plot_start_index = 0;
+//int8_t plot_data[240];
+//int8_t plot_data2[240];
+//uint8_t plot_start_index = 0;
 
 volatile uint32_t gimbal_cnt = 0;
 
+/* Chassis Control Variables */
 Chassis_Motor_t chassis_motor;
 
 float accel_gimbal_y;
 
 uint8_t chassis_auto_flag = 0;
 uint8_t chassis_dir_is_left = 1;
+
+/* Vision Control Variables */
+typedef struct {
+	uint8_t header;
+	uint8_t latency;
+	uint8_t found_target;
+	float yaw, pitch, dist;
+} __packed vision_rx_t;
+
+typedef struct{
+	vision_rx_t vision_rx;
+	float absolute_yaw;
+	float absolute_pitch;
+	uint8_t data_ready_flag;
+} vision_control_t;
+
+vision_control_t vision_control;
+
+void deg_limit(float *x){
+	if(*x > 180.f) *x -= 360.f;
+	if(*x < -180.f) *x += 360.f;
+}
 
 void Gimbal_Task(void const *argument) {
 	// Initialise the xLastWakeTime variable with the current time.
@@ -39,8 +62,8 @@ void Gimbal_Task(void const *argument) {
 	float yaw_angle_pid[3] = { 17, 0, 0.85 };
 
 	float yaw_ecd_angle_pid[3] = { 12, 0, 0.35 };
-	float pitch_gyro_pid[3] = { 50.f, 0.2f, 100.f };
-	float pitch_angle_pid[3] = { 50, 0.4, 0.12 };
+	float pitch_gyro_pid[3] = { 50.f, 0.8f, 50.f };
+	float pitch_angle_pid[3] = { 40, 0.4, 1.5 };
 
 	// Set motor measure pointers point to motor_measure[] in bsp_can.c
 	yaw_motor.motor_measure = motor_measure + 4;
@@ -48,7 +71,7 @@ void Gimbal_Task(void const *argument) {
 
 	// Init gyro (angle speed) PIDs
 	PID_Init(&yaw_motor.gyro_pid, PID_POSITION, yaw_gyro_pid, 30000, 10000);
-	PID_Init(&pitch_motor.gyro_pid, PID_POSITION, pitch_gyro_pid, 30000, 15000);
+	PID_Init(&pitch_motor.gyro_pid, PID_POSITION, pitch_gyro_pid, 24000, 5000);
 
 	// Init angle (ecd or imu) PIDs
 	PID_Init(&yaw_motor.angle_pid, PID_POSITION, yaw_angle_pid, 800, 80);
@@ -82,9 +105,7 @@ void Gimbal_Task(void const *argument) {
 
 	vTaskDelay(1500);
 
-	yaw_motor.ecd_angle = (-yaw_motor.motor_measure->ecd + 4096) / 4096.f
-			* 180.f;
-	yaw_motor.angle_set = yaw_motor.ecd_angle;
+	yaw_motor.angle_set = imu.eulerAngles.angle.yaw;
 	pitch_motor.angle_set = imu.eulerAngles.angle.pitch;
 
 	while (1) {
@@ -97,6 +118,8 @@ void Gimbal_Task(void const *argument) {
 		yaw_motor.ecd_angle = (-yaw_motor.motor_measure->ecd + 4096) / 4096.f
 				* 180.f;
 		yaw_motor.imu_angle = imu.eulerAngles.angle.yaw;
+
+		pitch_motor.imu_angle = imu.eulerAngles.angle.pitch;
 
 		shoot_control.speed = shoot_control.shoot_motor_measure->speed_rpm
 				* MOTOR_RPM_TO_SPEED;
@@ -123,32 +146,46 @@ void Gimbal_Task(void const *argument) {
 
 		filter_calc(&chassis_motor.accel_filter, chassis_motor.accel);
 
+		/* 250Hz Task, Record data for plotting
+		if(++counter_div_4 >= 4){
+			counter_div_4 = 0;
+			plot_data[plot_start_index] = (int8_t) pitch_motor.gyro_filter.out;
+			plot_data2[plot_start_index] = (int8_t) pitch_motor.motor_gyro_set;
+			plot_start_index++;
+			if(plot_start_index >= 240) plot_start_index = 0;
+		}
+		*/
+
+		/* [1.2] Vision Control */
+		if(vision_control.data_ready_flag == 1){
+			yaw_motor.angle_set = vision_control.absolute_yaw;
+			pitch_motor.angle_set = vision_control.absolute_pitch + 3;
+
+		} else{
+			/* Set angle increasement from RC */
+			yaw_motor.angle_set -= rc.rc.ch[0] / 3300.f;
+			pitch_motor.angle_set += rc.rc.ch[1] / 3300.f;
+
+			deg_limit(&yaw_motor.angle_set);
+		}
+		if (pitch_motor.angle_set > PITCH_ANGLE_MAX)
+			pitch_motor.angle_set = PITCH_ANGLE_MAX;
+		if (pitch_motor.angle_set < PITCH_ANGLE_MIN)
+			pitch_motor.angle_set = PITCH_ANGLE_MIN;
+
 		/* --- [2] Set mode and values from RC --- */
 
 		/* Set gyro from RC
 		 yaw_motor.motor_gyro_set = - rc.rc.ch[0] / 3.f;
 		 pitch_motor.motor_gyro_set = rc.rc.ch[1] / 3.f;
 		 */
-		/* Set angle increasement from RC */
-		yaw_motor.angle_set -= rc.rc.ch[0] / 3300.f;
-		pitch_motor.angle_set += rc.rc.ch[1] / 3300.f;
-
-		if (pitch_motor.angle_set > PITCH_ANGLE_MAX)
-			pitch_motor.angle_set = PITCH_ANGLE_MAX;
-		if (pitch_motor.angle_set < PITCH_ANGLE_MIN)
-			pitch_motor.angle_set = PITCH_ANGLE_MIN;
-
-		if (yaw_motor.angle_set > 180.f)
-			yaw_motor.angle_set -= 360.f;
-		if (yaw_motor.angle_set < -180.f)
-			yaw_motor.angle_set += 360.f;
 
 		/* Set angle from RC
 		 yaw_motor.angle_set = -rc.rc.ch[0] / 10.f;
 		 pitch_motor.angle_set = rc.rc.ch[1] / 10.f - 10.f;
 		 */
 
-		/* Set trigger speed from RC
+		/* Set trigger speed from RC switcher
 		 if (switch_is_down(rc.rc.s[1]) && trigger_is_on) {
 		 shoot_control.speed_set = 2.f;
 		 } else {
@@ -156,7 +193,10 @@ void Gimbal_Task(void const *argument) {
 		 }
 		 */
 
+		/* Set trigger speed from RC throttle */
 		shoot_control.speed_set = rc.rc.ch[3] / 660.f * 5.f + 5.f;
+
+		/* [2.1] Chassis Control */
 
 		if (switch_is_up(rc.rc.s[0])) {
 			chassis_auto_flag = 1;
@@ -179,22 +219,18 @@ void Gimbal_Task(void const *argument) {
 		} else {
 			chassis_motor.speed_set = rc.rc.ch[2] / 660.f * 4.f;
 		}
+
+		/* Set chassis current from RC */
+		// chassis_current_set = rc.rc.ch[2] * -10;
+
 		/* --- [3] Calculate control variables --- */
 
-		/* 250Hz Task */
-		// if(++counter_div_4 >= 4){
-		// 	counter_div_4 = 0;
-		// 	plot_data[plot_start_index] = (int8_t) pitch_motor.gyro_filter.out;
-		// 	plot_data2[plot_start_index] = (int8_t) pitch_motor.motor_gyro_set;
-		// 	plot_start_index++;
-		// 	if(plot_start_index >= 240) plot_start_index = 0;
-		// }
 		/* Angle loop PID calc: 250Hz */
 		yaw_motor.motor_gyro_set = gimbal_PID_calc(&yaw_motor.angle_pid,
 				yaw_motor.imu_angle, yaw_motor.angle_set,
 				-yaw_motor.motor_gyro);
 		pitch_motor.motor_gyro_set = gimbal_PID_calc(&pitch_motor.angle_pid,
-				imu.eulerAngles.angle.pitch, pitch_motor.angle_set,
+				pitch_motor.imu_angle, pitch_motor.angle_set,
 				-pitch_motor.motor_gyro);
 
 		/* Gyro loop PID */
@@ -230,12 +266,10 @@ void Gimbal_Task(void const *argument) {
 		CAN_cmd_gimbal(yaw_motor.given_current, pitch_motor.given_current,
 				shoot_control.given_current, 0);
 
-		/* Set chassis current from RC */
-		//chassis_current_set = rc.rc.ch[2] * -10;
 		CAN_cmd_chassis(chassis_motor.give_current, 0, 0, 0);
 
 		if (trigger_is_on) {
-			trigger_target_pulse = 1350.f;
+			trigger_target_pulse = 1200.f;
 		} else {
 			trigger_target_pulse = 1000.f;
 		}
@@ -255,15 +289,6 @@ void Gimbal_Task(void const *argument) {
 	}
 }
 
-typedef struct {
-	uint8_t header;
-	uint8_t latency;
-	uint8_t found_target;
-	float yaw, pitch, dist;
-} __packed vision_rx_t;
-
-vision_rx_t vision_rx;
-
 void usb_cdc_unpackage(uint8_t *Buf, uint32_t *Len) {
 	if (*Len < 15) {
 		return;
@@ -271,11 +296,21 @@ void usb_cdc_unpackage(uint8_t *Buf, uint32_t *Len) {
 	if (Buf[0] != 0xF6) {
 		return;
 	}
-	memcpy(&vision_rx, Buf, sizeof(vision_rx));
+	memcpy(&vision_control.vision_rx, Buf, sizeof(vision_rx_t));
+	if(vision_control.vision_rx.found_target){
+		get_history_eular_angle(vision_control.vision_rx.latency,
+				&vision_control.absolute_yaw, &vision_control.absolute_pitch);
+		vision_control.absolute_yaw += vision_control.vision_rx.yaw;
+		vision_control.absolute_pitch += vision_control.vision_rx.pitch;
+		deg_limit(&vision_control.absolute_yaw);
+		deg_limit(&vision_control.absolute_pitch);
+	}
+	vision_control.data_ready_flag = vision_control.vision_rx.found_target?1:2;
 }
 
-int8_t plot_buf[240];
-int8_t plot2_buf[240];
+
+//int8_t plot_buf[240];
+//int8_t plot2_buf[240];
 
 void LCD_Task(void const *argument) {
 

@@ -14,12 +14,13 @@
 #include "bsp_lcd.h"
 #include "chassis_power_control.h"
 #include "filter.h"
+#include "imu_task.h"
 
 typedef enum
 {
-    GIMBAL_MOTOR_RAW = 0, //µç»úÔ­Ê¼Öµ¿ØÖÆ
-    GIMBAL_MOTOR_GYRO,    //µç»úÍÓÂÝÒÇ½Ç¶È¿ØÖÆ
-    GIMBAL_MOTOR_ENCONDE, //µç»ú±àÂëÖµ½Ç¶È¿ØÖÆ
+    GIMBAL_MOTOR_RAW = 0, //ï¿½ï¿½ï¿½Ô­Ê¼Öµï¿½ï¿½ï¿½ï¿½
+    GIMBAL_MOTOR_GYRO,    //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç½Ç¶È¿ï¿½ï¿½ï¿½
+    GIMBAL_MOTOR_ENCONDE, //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½Ç¶È¿ï¿½ï¿½ï¿½
 } gimbal_motor_mode_e;
 
 typedef struct
@@ -101,7 +102,7 @@ typedef struct
 #define PITCH_ANGLE_MAX 0.f
 #define PITCH_ANGLE_MIN -25.f
 
-//²¦µ¯ÂÖµç»úPID
+//ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½PID
 #define TRIGGER_ANGLE_PID_KP        800.0f
 #define TRIGGER_ANGLE_PID_KI        5.f
 #define TRIGGER_ANGLE_PID_KD        0.0f
@@ -114,14 +115,14 @@ typedef struct
 
 #define MOTOR_RPM_TO_SPEED          0.00290888208665721596153948461415f
 
-//µ×ÅÌµç»úËÙ¶È»·PID
+//ï¿½ï¿½ï¿½Ìµï¿½ï¿½ï¿½Ù¶È»ï¿½PID
 #define M3508_MOTOR_SPEED_PID {12000.0f, 50.0f, 1000.0f}
 #define M3508_MOTOR_SPEED_PID_MAX_OUT 10000.0f
 #define M3508_MOTOR_SPEED_PID_MAX_IOUT 2000.0f
 
 #define M3508_MOTOR_POSITION_PID {2.0f, 0.0f, 0.0f}
 
-//m3508×ª»¯³Éµ×ÅÌËÙ¶È(m/s)µÄ±ÈÀý£¬×öÁ½¸öºê ÊÇÒòÎª¿ÉÄÜ»»µç»úÐèÒª¸ü»»±ÈÀý
+//m3508×ªï¿½ï¿½ï¿½Éµï¿½ï¿½ï¿½ï¿½Ù¶ï¿½(m/s)ï¿½Ä±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½Ü»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 #define M3508_MOTOR_RPM_TO_VECTOR 0.000415809748903494517209f
 #define CHASSIS_MOTOR_RPM_TO_VECTOR_SEN M3508_MOTOR_RPM_TO_VECTOR
 
