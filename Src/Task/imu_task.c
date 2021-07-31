@@ -4,6 +4,7 @@
 #include "usbd_cdc_if.h"
 #include "FusionAhrs.h"
 #include "imu_task.h"
+#include "arm_math.h"
 
 extern imu_t imu;	 // In bsp_imu.c
 extern char buf[]; // In main.c
@@ -17,7 +18,7 @@ TaskHandle_t INSHandle;
 int mpu6500_cnt = 0;
 
 typedef struct {
-	float yaw, pitch
+	float yaw, pitch;
 } eular_angle_t;
 
 #define HISTORY_SIZE 100
@@ -86,7 +87,7 @@ void INS_Task(void const *argument) {
 		update_history_eular_angle(imu.eulerAngles.angle.yaw, imu.eulerAngles.angle.pitch);
 
 		/* Get angle speed for gimbal from gyro_z and gyro_y */
-		imu.gimbal_yaw_gyro = cos(imu.eulerAngles.angle.pitch / 57.29577958f)
+		imu.gimbal_yaw_gyro = arm_cos_f32(imu.eulerAngles.angle.pitch / 57.29577958f)
 				* imu.gyro.axis.z
 				+ sin(imu.eulerAngles.angle.pitch / 57.29577958f)
 						* imu.gyro.axis.y;

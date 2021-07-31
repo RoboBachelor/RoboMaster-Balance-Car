@@ -15,6 +15,7 @@
 #include "chassis_power_control.h"
 #include "filter.h"
 #include "imu_task.h"
+#include "arm_math.h"
 
 typedef enum
 {
@@ -99,8 +100,8 @@ typedef struct
 } shoot_control_t;
 
 
-#define PITCH_ANGLE_MAX 0.f
-#define PITCH_ANGLE_MIN -25.f
+#define PITCH_ANGLE_MAX 14.f
+#define PITCH_ANGLE_MIN -14.5f
 
 //�����ֵ��PID
 #define TRIGGER_ANGLE_PID_KP        800.0f
@@ -143,6 +144,7 @@ typedef struct
 	PidTypeDef pid_position;
 } Chassis_Motor_t;
 
+void chassis_change_dir(void);
 void usb_cdc_unpackage(uint8_t* Buf, uint32_t *Len);
 
 #endif

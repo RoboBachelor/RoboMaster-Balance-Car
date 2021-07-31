@@ -222,13 +222,20 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(100);
+    osDelay(10);
 		//int_status = mpu_read_byte(0x3A);
 		//int_en = mpu_read_byte(0x38);
 
-		vTaskGetRunTimeStats(buf);
-		sprintf(buf + strlen(buf), "xTaskGetTickCount()=%d\n", xTaskGetTickCount());
-		//sCDC_Transmit_FS((uint8_t*) buf, strlen(buf));
+//		vTaskGetRunTimeStats(buf);
+//		sprintf(buf + strlen(buf), "xTaskGetTickCount()=%d\n", xTaskGetTickCount());
+
+		uint8_t wza_buf[200];
+		srand(xTaskGetTickCount());
+		for(uint8_t i = 0; i < 49; ++i){
+			wza_buf[i] = rand() % 256;
+		}
+
+		CDC_Transmit_FS((uint8_t*) wza_buf, 49);
   }
   /* USER CODE END StartDefaultTask */
 }

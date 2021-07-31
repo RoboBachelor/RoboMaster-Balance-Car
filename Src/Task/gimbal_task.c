@@ -30,6 +30,7 @@ float accel_gimbal_y;
 
 uint8_t chassis_auto_flag = 0;
 uint8_t chassis_dir_is_left = 1;
+uint16_t chassis_runtime_cur_dir = 0;
 
 /* Vision Control Variables */
 typedef struct {
@@ -51,6 +52,11 @@ vision_control_t vision_control;
 void deg_limit(float *x){
 	if(*x > 180.f) *x -= 360.f;
 	if(*x < -180.f) *x += 360.f;
+}
+
+void chassis_change_dir(){
+	chassis_dir_is_left = (chassis_dir_is_left + 1) & 0x1;
+	chassis_runtime_cur_dir = 0;
 }
 
 void Gimbal_Task(void const *argument) {
@@ -135,14 +141,14 @@ void Gimbal_Task(void const *argument) {
 		chassis_motor.speed = tmp_speed;
 
 		accel_gimbal_y = imu.accel.axis.y
-				* cosf(imu.eulerAngles.angle.pitch / 57.29577958f)
+				* arm_cos_f32(imu.eulerAngles.angle.pitch / 57.29577958f)
 				- imu.accel.axis.z
-						* sinf(imu.eulerAngles.angle.pitch / 57.29577958f);
+						* arm_sin_f32(imu.eulerAngles.angle.pitch / 57.29577958f);
 
 		chassis_motor.accel = accel_gimbal_y
-				* cosf((yaw_motor.ecd_angle - 60) / 57.29577958f)
+				* arm_cos_f32((yaw_motor.ecd_angle - 60) / 57.29577958f)
 				+ imu.accel.axis.x
-						* sinf((yaw_motor.ecd_angle - 60) / 57.29577958f);
+						* arm_sin_f32((yaw_motor.ecd_angle - 60) / 57.29577958f);
 
 		filter_calc(&chassis_motor.accel_filter, chassis_motor.accel);
 
@@ -156,25 +162,9 @@ void Gimbal_Task(void const *argument) {
 		}
 		*/
 
-		/* [1.2] Vision Control */
-		if(vision_control.data_ready_flag == 1){
-			yaw_motor.angle_set = vision_control.absolute_yaw;
-			pitch_motor.angle_set = vision_control.absolute_pitch + 3;
-
-		} else{
-			/* Set angle increasement from RC */
-			yaw_motor.angle_set -= rc.rc.ch[0] / 3300.f;
-			pitch_motor.angle_set += rc.rc.ch[1] / 3300.f;
-
-			deg_limit(&yaw_motor.angle_set);
-		}
-		if (pitch_motor.angle_set > PITCH_ANGLE_MAX)
-			pitch_motor.angle_set = PITCH_ANGLE_MAX;
-		if (pitch_motor.angle_set < PITCH_ANGLE_MIN)
-			pitch_motor.angle_set = PITCH_ANGLE_MIN;
-
 		/* --- [2] Set mode and values from RC --- */
 
+		/* [2.1] Vision Gimbal Control */
 		/* Set gyro from RC
 		 yaw_motor.motor_gyro_set = - rc.rc.ch[0] / 3.f;
 		 pitch_motor.motor_gyro_set = rc.rc.ch[1] / 3.f;
@@ -185,18 +175,52 @@ void Gimbal_Task(void const *argument) {
 		 pitch_motor.angle_set = rc.rc.ch[1] / 10.f - 10.f;
 		 */
 
-		/* Set trigger speed from RC switcher
+		if(vision_control.data_ready_flag == 1){
+			yaw_motor.angle_set = vision_control.absolute_yaw;
+			pitch_motor.angle_set = vision_control.absolute_pitch + 3;
+
+		} else{
+			/* Set angle increasement from RC */
+			yaw_motor.angle_set -= rc.rc.ch[0] / 3300.f;
+			pitch_motor.angle_set += rc.rc.ch[1] / 3300.f;
+
+			/* Rewrite angle increasement in auto mode */
+			if(chassis_auto_flag){
+				yaw_motor.angle_set -= 0.09;
+			}
+			
+			deg_limit(&yaw_motor.angle_set);
+		}
+		if (pitch_motor.angle_set > PITCH_ANGLE_MAX)
+			pitch_motor.angle_set = PITCH_ANGLE_MAX;
+		if (pitch_motor.angle_set < PITCH_ANGLE_MIN)
+			pitch_motor.angle_set = PITCH_ANGLE_MIN;
+
+		
+		/* [2.2] Triggr Speed Control */
+		
+		/* Set trigger speed from RC switcher */
 		 if (switch_is_down(rc.rc.s[1]) && trigger_is_on) {
-		 shoot_control.speed_set = 2.f;
+		 shoot_control.speed_set = 3.f;
 		 } else {
 		 shoot_control.speed_set = 0.f;
 		 }
-		 */
-
-		/* Set trigger speed from RC throttle */
+		 
+		/* Set trigger speed from RC throttle 
 		shoot_control.speed_set = rc.rc.ch[3] / 660.f * 5.f + 5.f;
-
-		/* [2.1] Chassis Control */
+		*/
+		
+		/* Rewrite the trigger speed if in auto mode */
+		 if(chassis_auto_flag){
+			 if(vision_control.vision_rx.found_target){
+					shoot_control.speed_set = 3.f;
+			 }
+			 else{
+					shoot_control.speed_set = 0.f;
+			 }
+		 }
+		 
+		/* [2.3] Chassis Control */
 
 		if (switch_is_up(rc.rc.s[0])) {
 			chassis_auto_flag = 1;
@@ -205,16 +229,24 @@ void Gimbal_Task(void const *argument) {
 		}
 
 		if (chassis_auto_flag) {
+			// Dir: Left
 			if (chassis_dir_is_left) {
 				chassis_motor.speed_set = 1.7f;
 				if (chassis_motor.accel_filter.out < -4.7f) {
-					chassis_dir_is_left = 0;
+					chassis_change_dir();
 				}
-			} else {
+			}
+			// Dir: Right
+			else {
 				chassis_motor.speed_set = -1.7f;
 				if (chassis_motor.accel_filter.out > 4.7f) {
-					chassis_dir_is_left = 1;
+					chassis_change_dir();
 				}
+			}
+			
+			
+			if(++chassis_runtime_cur_dir > 4000){
+				chassis_change_dir();
 			}
 		} else {
 			chassis_motor.speed_set = rc.rc.ch[2] / 660.f * 4.f;
@@ -261,7 +293,7 @@ void Gimbal_Task(void const *argument) {
 		/* Disable current filter */
 		yaw_motor.given_current = -(int16_t) yaw_motor.current_set;
 		pitch_motor.given_current = (int16_t) (pitch_motor.current_set
-				+ 6000.f * cosf(imu.eulerAngles.angle.pitch / 57.29577958f));
+				+ 6000.f * arm_cos_f32(imu.eulerAngles.angle.pitch / 57.29577958f));
 
 		CAN_cmd_gimbal(yaw_motor.given_current, pitch_motor.given_current,
 				shoot_control.given_current, 0);

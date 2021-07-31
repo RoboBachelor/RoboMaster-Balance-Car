@@ -14,6 +14,7 @@
 #include "usart.h"
 #include "main.h"
 #include "crc8_crc16.h"
+#include "gimbal_task.h"
 
 uint8_t dbus_buf[DBUS_BUFLEN];
 uint8_t refree_buf[REFREE_MAX_LEN];
@@ -222,6 +223,12 @@ void refree_buffer_handler(uint8_t *buf, uint16_t len){
         case ROBOT_STATE_CMD_ID:
         {
             memcpy(&robot_state, buf + i + 7, sizeof(robot_state));
+						if(robot_state.mains_power_shooter_output){
+								//HAL_GPIO_WritePin(SHOOT_POWER_EN_GPIO_Port, SHOOT_POWER_EN_Pin, GPIO_PIN_SET);
+						}
+						else{
+								//HAL_GPIO_WritePin(SHOOT_POWER_EN_GPIO_Port, SHOOT_POWER_EN_Pin, GPIO_PIN_RESET);
+						}
         }
         break;
         case POWER_HEAT_DATA_CMD_ID:
@@ -249,6 +256,7 @@ void refree_buffer_handler(uint8_t *buf, uint16_t len){
             memcpy(&robot_hurt, buf + i + 7, sizeof(robot_hurt));
 						if(robot_hurt.hurt_type == 0){
 							hit_count++;
+							chassis_change_dir();
 						}
         }
         break;
