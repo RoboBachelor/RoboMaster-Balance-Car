@@ -28,6 +28,7 @@ Chassis_Motor_t chassis_motor;
 
 float accel_gimbal_y;
 
+uint8_t gimbal_auto_flag = 0;
 uint8_t chassis_auto_flag = 0;
 uint8_t chassis_dir_is_left = 1;
 uint16_t chassis_runtime_cur_dir = 0;
@@ -51,6 +52,7 @@ typedef struct{
 	float predicted_pitch;
 	uint8_t found_target_flag;
 	uint8_t new_data_ready_flag;
+	uint32_t vision_lost_target;
 } vision_control_t;
 
 vision_control_t vision_control;
@@ -234,6 +236,19 @@ void Gimbal_Task(void const *argument) {
 
 		/* --- [2] Set mode and values from RC --- */
 
+		if (switch_is_up(rc.rc.s[0])) {
+			chassis_auto_flag = 1;
+		} else {
+			chassis_auto_flag = 0;
+		}
+
+		if (switch_is_mid(rc.rc.s[0]) || chassis_auto_flag){
+			gimbal_auto_flag = 1;
+		}
+		else{
+			gimbal_auto_flag = 0;
+		}
+		
 		/* [2.1] Vision Gimbal Control */
 		/* Set gyro from RC
 		 yaw_motor.motor_gyro_set = - rc.rc.ch[0] / 3.f;
@@ -247,6 +262,7 @@ void Gimbal_Task(void const *argument) {
 
 		if(vision_control.new_data_ready_flag){
 			vision_control.new_data_ready_flag = 0;
+			vision_control.vision_lost_target = 0;
 			
 			float Ts = vision_control.vision_rx.latency * 1e-3;
 			yaw_kf.F_data[3] = Ts;
@@ -277,14 +293,23 @@ void Gimbal_Task(void const *argument) {
 			
 		} 
 		else{
+			vision_control.vision_lost_target += 1;
+			
 			/* Set angle increasement from RC */
 			yaw_motor.angle_set -= rc.rc.ch[0] / 3300.f;
 			pitch_motor.angle_set += rc.rc.ch[1] / 3300.f;
 
 			/* Rewrite angle increasement in auto mode */
-			if(chassis_auto_flag){
-				yaw_motor.angle_set -= 0.09;
-				yaw_motor.angle_set = PITCH_ANGLE_MIN;
+			if(gimbal_auto_flag){
+				
+				if(vision_control.vision_lost_target <= 1000){
+					// Fix the gimbal
+					yaw_motor.angle_set = yaw_motor.angle_set;
+				}
+				else{
+					yaw_motor.angle_set -= 0.09;
+					pitch_motor.angle_set = PITCH_ANGLE_MIN;
+				}
 			}
 			
 			deg_limit(&yaw_motor.angle_set);
@@ -314,7 +339,7 @@ void Gimbal_Task(void const *argument) {
 		*/
 		
 		/* Rewrite the trigger speed if in auto mode */
-		 if(chassis_auto_flag){
+		 if(gimbal_auto_flag && trigger_is_on){
 			 if(vision_control.vision_rx.found_target){
 					shoot_control.speed_set = 3.f;
 			 }
@@ -325,23 +350,17 @@ void Gimbal_Task(void const *argument) {
 		 
 		/* [2.3] Chassis Control */
 
-		if (switch_is_up(rc.rc.s[0])) {
-			chassis_auto_flag = 1;
-		} else {
-			chassis_auto_flag = 0;
-		}
-
 		if (chassis_auto_flag) {
 			// Dir: Left
 			if (chassis_dir_is_left) {
-				chassis_motor.speed_set = 1.7f;
+				chassis_motor.speed_set = 1.5f;
 				if (chassis_motor.accel_filter.out < -4.7f) {
 					chassis_change_dir();
 				}
 			}
 			// Dir: Right
 			else {
-				chassis_motor.speed_set = -1.7f;
+				chassis_motor.speed_set = -1.5f;
 				if (chassis_motor.accel_filter.out > 4.7f) {
 					chassis_change_dir();
 				}
@@ -441,7 +460,7 @@ void usb_cdc_unpackage(uint8_t *Buf, uint32_t *Len) {
 		deg_limit(&vision_control.absolute_pitch);
 	}
 	vision_control.found_target_flag = vision_control.vision_rx.found_target;
-	vision_control.new_data_ready_flag = 1;
+	vision_control.new_data_ready_flag = vision_control.vision_rx.found_target==0x1?1:0;
 }
 
 
