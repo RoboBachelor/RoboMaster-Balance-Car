@@ -32,6 +32,9 @@ uint8_t chassis_auto_flag = 0;
 uint8_t chassis_dir_is_left = 1;
 uint16_t chassis_runtime_cur_dir = 0;
 
+
+
+
 /* Vision Control Variables */
 typedef struct {
 	uint8_t header;
@@ -44,10 +47,59 @@ typedef struct{
 	vision_rx_t vision_rx;
 	float absolute_yaw;
 	float absolute_pitch;
-	uint8_t data_ready_flag;
+	float predicted_yaw;
+	float predicted_pitch;
+	uint8_t found_target_flag;
+	uint8_t new_data_ready_flag;
 } vision_control_t;
 
 vision_control_t vision_control;
+
+KalmanFilter_t yaw_kf, pitch_kf;
+
+#define dt 1e-3
+
+float F_Init[9] = {
+    1, 0, 0, dt, 1, 0, 0.5 * dt *dt, dt, 1,
+};
+
+float H_Init[3] = {
+    0,
+    0,
+    1,
+};
+
+float B_Init[3] = {
+    0,
+    0,
+    0,
+};
+
+float Q_Init[9] = {0.1, 0, 0, 0, 0.1, 0, 0, 0, 0.1};
+float R_Init[1] = {0.5};
+
+float Q_Init_height[9] = {0.1, 0, 0, 0, 0.1, 0, 0, 0, 0.1};
+
+float R_Init_height[1] = {4};
+
+float state_min_variance[3] = {0.03, 0.005, 0.1};
+
+float coord_trans_matrix_data[9] = {1, 0, 0, 0, 1, 0, 0, 0, 1};
+float milli_trans_matrix_data[9] = {
+    1, 0, 0, dt, 1, 0, 0.5 * dt *dt, dt, 1,
+};
+float P_Init[9] = {
+    10, 0, 0, 0, 30, 0, 0, 0, 10,
+};
+
+float delay_trans_matrix_data[9] = {
+    1, 0, 0, 0, 1, 0, 0, 0, 1,
+};
+
+arm_matrix_instance_f32 milli_trans_matrix, cur_yaw;
+arm_matrix_instance_f32 delay_trans_matrix, predicted_yaw;
+float cur_yaw_data[3];
+float predicted_yaw_data[3];
 
 void deg_limit(float *x){
 	if(*x > 180.f) *x -= 360.f;
@@ -69,7 +121,7 @@ void Gimbal_Task(void const *argument) {
 
 	float yaw_ecd_angle_pid[3] = { 12, 0, 0.35 };
 	float pitch_gyro_pid[3] = { 50.f, 0.8f, 50.f };
-	float pitch_angle_pid[3] = { 40, 0.4, 1.5 };
+	float pitch_angle_pid[3] = { 40, 0.4, 0.2 };
 
 	// Set motor measure pointers point to motor_measure[] in bsp_can.c
 	yaw_motor.motor_measure = motor_measure + 4;
@@ -109,6 +161,24 @@ void Gimbal_Task(void const *argument) {
 
 	chassis_motor.accel_filter.a = 0.99;
 
+	/* Kalman_filter Init */
+	
+  Matrix_Init(&milli_trans_matrix, 3, 3, milli_trans_matrix_data);
+  Matrix_Init(&delay_trans_matrix, 3, 3, delay_trans_matrix_data);
+  Matrix_Init(&predicted_yaw, 3, 1, predicted_yaw_data);
+	
+	Kalman_Filter_Create(&yaw_kf, 3, 0, 1);
+  memcpy(yaw_kf.F_data, F_Init, sizeof(F_Init));
+  memcpy(yaw_kf.B_data, B_Init, sizeof(B_Init));
+  memcpy(yaw_kf.H_data, H_Init, sizeof(H_Init));
+  memcpy(yaw_kf.R_data, R_Init, sizeof(R_Init));
+  memcpy(yaw_kf.Q_data, Q_Init, sizeof(Q_Init));
+  memcpy(yaw_kf.P_data, P_Init, sizeof(P_Init));
+  memcpy(yaw_kf.StateMinVariance, state_min_variance, sizeof(state_min_variance));
+	yaw_kf.UseAutoAdjustment = 0;
+			
+  Matrix_Init(&cur_yaw, 3, 1, cur_yaw_data);
+			
 	vTaskDelay(1500);
 
 	yaw_motor.angle_set = imu.eulerAngles.angle.yaw;
@@ -175,11 +245,38 @@ void Gimbal_Task(void const *argument) {
 		 pitch_motor.angle_set = rc.rc.ch[1] / 10.f - 10.f;
 		 */
 
-		if(vision_control.data_ready_flag == 1){
-			yaw_motor.angle_set = vision_control.absolute_yaw;
+		if(vision_control.new_data_ready_flag){
+			vision_control.new_data_ready_flag = 0;
+			
+			float Ts = vision_control.vision_rx.latency * 1e-3;
+			yaw_kf.F_data[3] = Ts;
+			yaw_kf.F_data[7] = Ts;
+			yaw_kf.F_data[6] = 0.5 * Ts * Ts;
+			yaw_kf.MeasuredVector[0] = vision_control.absolute_yaw;
+			Kalman_Filter_Update(&yaw_kf);
+			memcpy(cur_yaw_data, yaw_kf.xhat_data, sizeof(float) * 3);
+			
+
+			
+		}
+		
+		if(vision_control.found_target_flag){
+					
+			float horizon = vision_control.vision_rx.latency * 1e-3 + 0.1;
+			// Update prediction matrix
+			delay_trans_matrix_data[3] = delay_trans_matrix_data[7] = horizon;
+			delay_trans_matrix_data[6] = 0.5 * horizon * horizon;
+			// Predict angle
+			Matrix_Multiply(&delay_trans_matrix, &cur_yaw, &predicted_yaw);
+			
+			Matrix_Multiply(&milli_trans_matrix, &cur_yaw, &cur_yaw);
+			
+			yaw_motor.angle_set = predicted_yaw_data[2] + 57.29f * atanf(8 / vision_control.vision_rx.dist);
 			pitch_motor.angle_set = vision_control.absolute_pitch + 3;
 
-		} else{
+			
+		} 
+		else{
 			/* Set angle increasement from RC */
 			yaw_motor.angle_set -= rc.rc.ch[0] / 3300.f;
 			pitch_motor.angle_set += rc.rc.ch[1] / 3300.f;
@@ -187,9 +284,15 @@ void Gimbal_Task(void const *argument) {
 			/* Rewrite angle increasement in auto mode */
 			if(chassis_auto_flag){
 				yaw_motor.angle_set -= 0.09;
+				yaw_motor.angle_set = PITCH_ANGLE_MIN;
 			}
 			
 			deg_limit(&yaw_motor.angle_set);
+			
+			
+      Kalman_Filter_Reset(&yaw_kf);
+      memcpy(yaw_kf.P_data, P_Init, sizeof(P_Init));
+			
 		}
 		if (pitch_motor.angle_set > PITCH_ANGLE_MAX)
 			pitch_motor.angle_set = PITCH_ANGLE_MAX;
@@ -337,7 +440,8 @@ void usb_cdc_unpackage(uint8_t *Buf, uint32_t *Len) {
 		deg_limit(&vision_control.absolute_yaw);
 		deg_limit(&vision_control.absolute_pitch);
 	}
-	vision_control.data_ready_flag = vision_control.vision_rx.found_target?1:2;
+	vision_control.found_target_flag = vision_control.vision_rx.found_target;
+	vision_control.new_data_ready_flag = 1;
 }
 
 

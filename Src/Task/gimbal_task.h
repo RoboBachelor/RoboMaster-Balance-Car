@@ -16,6 +16,7 @@
 #include "filter.h"
 #include "imu_task.h"
 #include "arm_math.h"
+#include "kalman_filter.h"
 
 typedef enum
 {
