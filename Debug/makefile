@@ -14,6 +14,7 @@ RM := rm -rf
 -include Src/Task/subdir.mk
 -include Src/PID/subdir.mk
 -include Src/LPF/subdir.mk
+-include Src/Kalman/subdir.mk
 -include Src/Fusion/subdir.mk
 -include Src/Chassis_Power_Control/subdir.mk
 -include Src/CRC8_CRC16/subdir.mk
@@ -74,8 +75,8 @@ all: main-build
 main-build: Imu.elf secondary-outputs
 
 # Tool invocations
-Imu.elf: $(OBJS) $(USER_OBJS) /media/wjy/Data/RM2020-EC/RM-A-Guard-New/STM32F427IIHX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "Imu.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/media/wjy/Data/RM2020-EC/RM-A-Guard-New/STM32F427IIHX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Imu.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Imu.elf: $(OBJS) $(USER_OBJS) D:\RM2020-EC\RM-A-Guard-New\STM32F427IIHX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "Imu.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"D:\RM2020-EC\RM-A-Guard-New\STM32F427IIHX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Imu.map" -Wl,--gc-sections -static ../Drivers/CMSIS/Lib/GCC/libarm_cortexM4lf_math.a --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

@@ -30,6 +30,7 @@ Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang \
 Src/CRC8_CRC16 \
 Src/Chassis_Power_Control \
 Src/Fusion \
+Src/Kalman \
 Src/LPF \
 Src/PID \
 Src/Task \

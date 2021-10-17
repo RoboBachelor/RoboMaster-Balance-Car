@@ -38,6 +38,7 @@
 "./Src/Fusion/FusionAhrs.o"
 "./Src/Fusion/FusionBias.o"
 "./Src/Fusion/FusionCompass.o"
+"./Src/Kalman/kalman_filter.o"
 "./Src/LPF/filter.o"
 "./Src/PID/pid.o"
 "./Src/Task/gimbal_task.o"
