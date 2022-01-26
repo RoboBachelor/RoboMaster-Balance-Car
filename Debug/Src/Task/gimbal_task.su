@@ -1,5 +1,0 @@
-gimbal_task.c:106:6:deg_limit	16	static
-gimbal_task.c:111:6:chassis_change_dir	4	static
-gimbal_task.c:116:6:Gimbal_Task	136	static
-gimbal_task.c:446:6:usb_cdc_unpackage	24	static
-gimbal_task.c:470:6:LCD_Task	24	static

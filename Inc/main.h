@@ -65,6 +65,14 @@ void Error_Handler(void);
 #define LCD_SCLK_GPIO_Port GPIOB
 #define LCD_DC_Pin GPIO_PIN_9
 #define LCD_DC_GPIO_Port GPIOB
+#define PWR_24V_1_Pin GPIO_PIN_2
+#define PWR_24V_1_GPIO_Port GPIOH
+#define PWR_24V_2_Pin GPIO_PIN_3
+#define PWR_24V_2_GPIO_Port GPIOH
+#define PWR_24V_3_Pin GPIO_PIN_4
+#define PWR_24V_3_GPIO_Port GPIOH
+#define PWR_24V_4_Pin GPIO_PIN_5
+#define PWR_24V_4_GPIO_Port GPIOH
 #define SHOOT_PWR_EN_Pin GPIO_PIN_4
 #define SHOOT_PWR_EN_GPIO_Port GPIOC
 #define LCD_BLK_Pin GPIO_PIN_6
@@ -86,5 +94,3 @@ void Error_Handler(void);
 #endif
 
 #endif /* __MAIN_H */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

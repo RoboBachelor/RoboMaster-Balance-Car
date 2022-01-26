@@ -1,2 +1,0 @@
-chassis_power_control.c:46:7:chassis_power_control	40	static
-chassis_power_control.c:125:6:set_waring_buf_value	16	static

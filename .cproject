@@ -100,9 +100,9 @@
 					<fileInfo id="com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.debug.950946746.658203607" name="libarm_cortexM7l_math.a" rcbsApplicability="disable" resourcePath="Drivers/CMSIS/Lib/GCC/libarm_cortexM7l_math.a" toolsToInvoke=""/>
 					<sourceEntries>
 						<entry excluding="CMSIS/Lib/GCC|CMSIS/Lib/GCC/libarm_cortexM7lfsp_math.a|CMSIS/Lib/GCC/libarm_cortexM7lfdp_math.a|CMSIS/Lib/GCC/libarm_cortexM7l_math.a|CMSIS/Lib/GCC/libarm_cortexM4l_math.a|CMSIS/Lib/ARM|CMSIS/Lib/IAR|CMSIS/DSP|CMSIS/Core/|CMSIS/Core_A/|CMSIS/docs/|CMSIS/DSP_Lib/|CMSIS/Include/|CMSIS/NN/|CMSIS/RTOS/|CMSIS/RTOS2/" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Src"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Startup"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Src"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

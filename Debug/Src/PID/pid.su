@@ -1,4 +1,0 @@
-pid.c:29:6:PID_Init	32	static
-pid.c:45:7:PID_Calc	24	static
-pid.c:78:7:gimbal_PID_calc	32	static
-pid.c:99:6:PID_clear	16	static

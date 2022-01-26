@@ -1,2 +1,0 @@
-bsp_trigger.c:3:6:trigger_pwm_start	8	static
-bsp_trigger.c:9:6:trigger_set_pulse	16	static

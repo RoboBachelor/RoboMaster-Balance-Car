@@ -1,2 +1,0 @@
-filter.c:3:6:filter_init	16	static
-filter.c:8:7:filter_calc	16	static
