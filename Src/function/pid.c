@@ -84,8 +84,8 @@ float gimbal_PID_calc(PidTypeDef *pid, float get, float set, float error_delta) 
     pid->set = set;
 
     err = set - get;
-    if (err > 180.f) err -= 360.f;
-    if (err < -180.f) err += 360.f;
+    while (err > 180.f) err -= 360.f;
+    while (err < -180.f) err += 360.f;
     pid->error[0] = err;
     pid->Pout = pid->Kp * pid->error[0];
     pid->Iout += pid->Ki * pid->error[0];

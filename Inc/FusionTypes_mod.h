@@ -76,8 +76,8 @@ typedef union {
     float array[3];
 
     struct {
-        float roll;
         float pitch;
+        float roll;
         float yaw;
     } angle;
 } FusionEulerAngles;
@@ -460,8 +460,8 @@ static inline __attribute__((always_inline)) FusionEulerAngles FusionQuaternionT
 #define Q quaternion.element // define shorthand label for more readable code
     const float qwqwMinusHalf = Q.w * Q.w - 0.5f; // calculate common terms to avoid repeated operations
     FusionEulerAngles eulerAngles;
-    eulerAngles.angle.roll = FusionRadiansToDegrees(atan2f(Q.y * Q.z - Q.w * Q.x, qwqwMinusHalf + Q.z * Q.z));
-    eulerAngles.angle.pitch = FusionRadiansToDegrees(-1.0f * asinf(2.0f * (Q.x * Q.z + Q.w * Q.y)));
+    eulerAngles.angle.pitch = FusionRadiansToDegrees(atan2f(Q.y * Q.z - Q.w * Q.x, qwqwMinusHalf + Q.z * Q.z));
+    eulerAngles.angle.roll = FusionRadiansToDegrees(-1.0f * asinf(2.0f * (Q.x * Q.z + Q.w * Q.y)));
     eulerAngles.angle.yaw = FusionRadiansToDegrees(atan2f(Q.x * Q.y - Q.w * Q.z, qwqwMinusHalf + Q.x * Q.x));
     return eulerAngles;
 #undef Q // undefine shorthand label

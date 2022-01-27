@@ -130,20 +130,27 @@ typedef struct
 
 typedef struct
 {
-  const motor_measure_t *chassis_motor_measure;
-  float accel;
+	const motor_measure_t *chassis_motor_measure;
+	float accel;
 	filter_t accel_filter;
-  float speed;
-  float speed_set;
+	float speed;
+	float speed_set;
 	float distance_cm;
 	float distance_cm_set;
 	float current_set;
 	uint8_t initialized;
-  int16_t give_current;
+	int16_t give_current;
 	int32_t ecd_cum_min;
 	PidTypeDef pid_speed;
 	PidTypeDef pid_position;
 } Chassis_Motor_t;
+
+
+typedef enum
+{
+    CAR_MODE_ZERO = 0,	// Zero current to motor
+    CAR_MODE_RUNNING,	// Normal
+} balacne_car_mode_e;
 
 void chassis_change_dir(void);
 void usb_cdc_unpackage(uint8_t* Buf, uint32_t *Len);

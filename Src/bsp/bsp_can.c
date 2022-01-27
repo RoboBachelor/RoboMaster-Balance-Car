@@ -19,7 +19,8 @@ motor data,  0:chassis motor1 3508;1:chassis motor3 3508;2:chassis motor3 3508;3
 电机数据, 0:底盘电机1 3508电机,  1:底盘电机2 3508电机,2:底盘电机3 3508电机,3:底盘电机4 3508电机;
 4:yaw云台电机 6020电机; 5:pitch云台电机 6020电机; 6:拨弹电机 2006电机*/
 motor_measure_t motor_measure[7];
-
+uint32_t can_ir_cnt = 0;
+	
 static CAN_TxHeaderTypeDef  gimbal_tx_message;
 static uint8_t              gimbal_can_send_data[8];
 static CAN_TxHeaderTypeDef  chassis_tx_message;
@@ -45,6 +46,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     switch (rx_header.StdId)
     {
         case CAN_3508_M1_ID:
+			can_ir_cnt++;
         case CAN_3508_M2_ID:
         case CAN_3508_M3_ID:
         case CAN_3508_M4_ID:
@@ -57,17 +59,17 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
             i = rx_header.StdId - CAN_3508_M1_ID;
             get_motor_measure(&motor_measure[i], rx_data);
             
-						if(motor_measure[i].last_ecd - motor_measure[i].ecd > 4096){
-							motor_measure[i].ecd_8192n += 8192;
-						}
-						if(motor_measure[i].last_ecd - motor_measure[i].ecd < -4096){
-							motor_measure[i].ecd_8192n -= 8192;
-						}
-						motor_measure[i].ecd_cumulation = 
-								motor_measure[i].ecd_8192n
-							+ motor_measure[i].ecd;
-					
-						//detect_hook(CHASSIS_MOTOR1_TOE + i);
+			if(motor_measure[i].last_ecd - motor_measure[i].ecd > 4096){
+				motor_measure[i].ecd_8192n += 8192;
+			}
+			if(motor_measure[i].last_ecd - motor_measure[i].ecd < -4096){
+				motor_measure[i].ecd_8192n -= 8192;
+			}
+			motor_measure[i].ecd_cumulation = 
+				motor_measure[i].ecd_8192n
+				+ motor_measure[i].ecd;
+		
+			//detect_hook(CHASSIS_MOTOR1_TOE + i);
             break;
         }
 

@@ -20,7 +20,7 @@
 enum PID_MODE { PID_POSITION = 0, PID_DELTA };
 
 typedef struct {
-    uint8_t mode;
+    enum PID_MODE mode;
     // PID Èý²ÎÊý
     float Kp;
     float Ki;

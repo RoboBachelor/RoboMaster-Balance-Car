@@ -295,14 +295,14 @@ void imu_buff_handler(uint8_t* mpu_buff, uint8_t* ist_buf){
     imu.temp = 21 + mpu_data.temp / 333.87f;
 	
 	  /* 1000dps -> deg/s */
-	  imu.gyro.axis.x = - mpu_data.gx / 32.768f;
-    imu.gyro.axis.y = - mpu_data.gy / 32.768f;
-    imu.gyro.axis.z = mpu_data.gz / 32.768f;
+	imu.gyro.axis.x = - mpu_data.gz / 32.768f;
+    imu.gyro.axis.y = - mpu_data.gx / 32.768f;
+    imu.gyro.axis.z = mpu_data.gy / 32.768f;
 		
-		/* 8g -> m/s^2 */
-		imu.accel.axis.x = - mpu_data.ax / 4096.f * 9.80665f;
-		imu.accel.axis.y = - mpu_data.ay / 4096.f * 9.80665f;
-		imu.accel.axis.z = mpu_data.az / 4096.f * 9.80665f;
+	/* 8g -> m/s^2 */
+	imu.accel.axis.x = - mpu_data.az / 4096.f * 9.80665f;
+	imu.accel.axis.y = - mpu_data.ax / 4096.f * 9.80665f;
+	imu.accel.axis.z = mpu_data.ay / 4096.f * 9.80665f;
 }
 
 

@@ -86,22 +86,22 @@ void rc_callback_handler(RC_ctrl_t *rc_ctrl, uint8_t *sbus_buf)
 {
 	
     rc_ctrl->rc.ch[0] = (sbus_buf[0] | (sbus_buf[1] << 8)) & 0x07ff;        //!< Channel 0
-		if(rc_ctrl->rc.ch[0] > 1024 + 660 || rc_ctrl->rc.ch[0] < 1024 - 660){
-			rc_ctrl->rc.ch[0] = 1024;
-			return;
-		}
+	if(rc_ctrl->rc.ch[0] > 1024 + 660 || rc_ctrl->rc.ch[0] < 1024 - 660){
+		rc_ctrl->rc.ch[0] = 1024;
+		return;
+	}
     rc_ctrl->rc.ch[1] = ((sbus_buf[1] >> 3) | (sbus_buf[2] << 5)) & 0x07ff; //!< Channel 1	
-		if(rc_ctrl->rc.ch[1] > 1024 + 660 || rc_ctrl->rc.ch[1] < 1024 - 660){
-			rc_ctrl->rc.ch[1] = 1024;
-			return;
-		}
-		rc_ctrl->rc.ch[2] = ((sbus_buf[2] >> 6) | (sbus_buf[3] << 2) |          //!< Channel 2
-                         (sbus_buf[4] << 10)) &0x07ff;
-		if(rc_ctrl->rc.ch[2] > 1024 + 660 || rc_ctrl->rc.ch[2] < 1024 - 660){
-			rc_ctrl->rc.ch[2] = 1024;
-			return;
-		}
-		rc_ctrl->rc.ch[3] = ((sbus_buf[4] >> 1) | (sbus_buf[5] << 7)) & 0x07ff; //!< Channel 3
+	if(rc_ctrl->rc.ch[1] > 1024 + 660 || rc_ctrl->rc.ch[1] < 1024 - 660){
+		rc_ctrl->rc.ch[1] = 1024;
+		return;
+	}
+	rc_ctrl->rc.ch[2] = ((sbus_buf[2] >> 6) | (sbus_buf[3] << 2) |          //!< Channel 2
+					 (sbus_buf[4] << 10)) &0x07ff;
+	if(rc_ctrl->rc.ch[2] > 1024 + 660 || rc_ctrl->rc.ch[2] < 1024 - 660){
+		rc_ctrl->rc.ch[2] = 1024;
+		return;
+	}
+	rc_ctrl->rc.ch[3] = ((sbus_buf[4] >> 1) | (sbus_buf[5] << 7)) & 0x07ff; //!< Channel 3
     rc_ctrl->rc.s[0] = ((sbus_buf[5] >> 4) & 0x0003);                  //!< Switch left
     rc_ctrl->rc.s[1] = ((sbus_buf[5] >> 4) & 0x000C) >> 2;                       //!< Switch right
     rc_ctrl->mouse.x = sbus_buf[6] | (sbus_buf[7] << 8);                    //!< Mouse X axis
@@ -182,105 +182,105 @@ void refree_buffer_handler(uint8_t *buf, uint16_t len){
 			switch(cmd_id){
 				
 				// 0x00__
-        case GAME_STATE_CMD_ID:
-        {
-            memcpy(&game_status, buf + i + 7, sizeof(game_status));
-        }
-        break;
-        case GAME_RESULT_CMD_ID:
-        {
-            memcpy(&game_result, buf + i + 7, sizeof(game_result));
-        }
-        break;
-        case GAME_ROBOT_HP_CMD_ID:
-        {
-            memcpy(&game_robot_HP, buf + i + 7, sizeof(game_robot_HP));
-        }
-        break;
+				case GAME_STATE_CMD_ID:
+				{
+					memcpy(&game_status, buf + i + 7, sizeof(game_status));
+				}
+				break;
+				case GAME_RESULT_CMD_ID:
+				{
+					memcpy(&game_result, buf + i + 7, sizeof(game_result));
+				}
+				break;
+				case GAME_ROBOT_HP_CMD_ID:
+				{
+					memcpy(&game_robot_HP, buf + i + 7, sizeof(game_robot_HP));
+				}
+				break;
 
 				// 0x01__
-        case FIELD_EVENTS_CMD_ID:
-        {
-            memcpy(&field_event, buf + i + 7, sizeof(field_event));
-        }
-        break;
-        case SUPPLY_PROJECTILE_ACTION_CMD_ID:
-        {
-            memcpy(&supply_projectile_action, buf + i + 7, sizeof(supply_projectile_action));
-        }
-        break;
-        case REFEREE_WARNING_CMD_ID:
-        {
-            memcpy(&referee_warning, buf + i + 7, sizeof(referee_warning));
-        }
-        break;
+				case FIELD_EVENTS_CMD_ID:
+				{
+					memcpy(&field_event, buf + i + 7, sizeof(field_event));
+				}
+				break;
+				case SUPPLY_PROJECTILE_ACTION_CMD_ID:
+				{
+					memcpy(&supply_projectile_action, buf + i + 7, sizeof(supply_projectile_action));
+				}
+				break;
+				case REFEREE_WARNING_CMD_ID:
+				{
+					memcpy(&referee_warning, buf + i + 7, sizeof(referee_warning));
+				}
+				break;
 				case DART_REMAINING_TIME_CMD_ID:{
-						memcpy(&dart_remaining_time, buf + i + 7, sizeof(dart_remaining_time));
+					memcpy(&dart_remaining_time, buf + i + 7, sizeof(dart_remaining_time));
 				}
 				break;
 				
 				// 0x02__
-        case ROBOT_STATE_CMD_ID:
-        {
-            memcpy(&robot_state, buf + i + 7, sizeof(robot_state));
-						if(robot_state.mains_power_shooter_output){
-								//HAL_GPIO_WritePin(SHOOT_POWER_EN_GPIO_Port, SHOOT_POWER_EN_Pin, GPIO_PIN_SET);
-						}
-						else{
-								//HAL_GPIO_WritePin(SHOOT_POWER_EN_GPIO_Port, SHOOT_POWER_EN_Pin, GPIO_PIN_RESET);
-						}
-        }
-        break;
-        case POWER_HEAT_DATA_CMD_ID:
-        {
-            memcpy(&power_heat_data, buf + i + 7, sizeof(power_heat_data));
-        }
-        break;
-        case ROBOT_POS_CMD_ID:
-        {
-            memcpy(&game_robot_pos, buf + i + 7, sizeof(game_robot_pos));
-        }
-        break;
-        case BUFF_MUSK_CMD_ID:
-        {
-            memcpy(&robot_buff, buf + i + 7, sizeof(robot_buff));
-        }
-        break;
-        case AERIAL_ROBOT_ENERGY_CMD_ID:
-        {
-            memcpy(&robot_energy, buf + i + 7, sizeof(robot_energy));
-        }
-        break;
-        case ROBOT_HURT_CMD_ID:
-        {
-            memcpy(&robot_hurt, buf + i + 7, sizeof(robot_hurt));
-						if(robot_hurt.hurt_type == 0){
-							hit_count++;
-							chassis_change_dir();
-						}
-        }
-        break;
-        case SHOOT_DATA_CMD_ID:
-        {
-            memcpy(&shoot_data, buf + i + 7, sizeof(shoot_data));
-        }
-        break;
-        case BULLET_REMAINING_CMD_ID:
-        {
-            memcpy(&bullet_remaining, buf + i + 7, sizeof(bullet_remaining));
-        }
-        break;
-				
-				// 0x03__
-        case STUDENT_INTERACTIVE_DATA_CMD_ID:
-        {
-            memcpy(&student_interactive_data, buf + i + 7, sizeof(student_interactive_data));
-        }
-        break;
-        default:
-        {
-            break;
-        }
+				case ROBOT_STATE_CMD_ID:
+				{
+					memcpy(&robot_state, buf + i + 7, sizeof(robot_state));
+					if(robot_state.mains_power_shooter_output){
+							//HAL_GPIO_WritePin(SHOOT_POWER_EN_GPIO_Port, SHOOT_POWER_EN_Pin, GPIO_PIN_SET);
+					}
+					else{
+							//HAL_GPIO_WritePin(SHOOT_POWER_EN_GPIO_Port, SHOOT_POWER_EN_Pin, GPIO_PIN_RESET);
+					}
+				}
+				break;
+				case POWER_HEAT_DATA_CMD_ID:
+				{
+					memcpy(&power_heat_data, buf + i + 7, sizeof(power_heat_data));
+				}
+				break;
+				case ROBOT_POS_CMD_ID:
+				{
+					memcpy(&game_robot_pos, buf + i + 7, sizeof(game_robot_pos));
+				}
+				break;
+				case BUFF_MUSK_CMD_ID:
+				{
+					memcpy(&robot_buff, buf + i + 7, sizeof(robot_buff));
+				}
+				break;
+				case AERIAL_ROBOT_ENERGY_CMD_ID:
+				{
+					memcpy(&robot_energy, buf + i + 7, sizeof(robot_energy));
+				}
+				break;
+				case ROBOT_HURT_CMD_ID:
+				{
+					memcpy(&robot_hurt, buf + i + 7, sizeof(robot_hurt));
+//					if(robot_hurt.hurt_type == 0){
+//						hit_count++;
+//						chassis_change_dir();
+//					}
+				}
+				break;
+				case SHOOT_DATA_CMD_ID:
+				{
+					memcpy(&shoot_data, buf + i + 7, sizeof(shoot_data));
+				}
+				break;
+				case BULLET_REMAINING_CMD_ID:
+				{
+					memcpy(&bullet_remaining, buf + i + 7, sizeof(bullet_remaining));
+				}
+				break;
+						
+						// 0x03__
+				case STUDENT_INTERACTIVE_DATA_CMD_ID:
+				{
+					memcpy(&student_interactive_data, buf + i + 7, sizeof(student_interactive_data));
+				}
+				break;
+				default:
+				{
+					break;
+				}
 			}
 		}
 	}
